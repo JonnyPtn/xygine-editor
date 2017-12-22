@@ -41,29 +41,29 @@ Editor::Editor()
     : xy::App   (/*sf::ContextSettings(0, 0, 0, 3, 2, sf::ContextSettings::Core)*/),
     m_stateStack({ *getRenderWindow(), *this })
 {
-    m_windowSize = getRenderWindow()->getSize();
 }
 
 //private
 void Editor::handleEvent(const sf::Event& evt)
-{    
+{
+    // Check for hot keys
+    switch(evt.type)
+    {
+        case sf::Event::KeyPressed:
+            switch (evt.key.code)
+        {
+            // ctrl + o to open
+            case sf::Keyboard::O:
+                if (evt.key.control)
+                    m_stateStack.pushState(States::OPEN);
+                break;
+        }
+    }
     m_stateStack.handleEvent(evt);
 }
 
 void Editor::handleMessage(const xy::Message& msg)
 {
-    // Update window size if needed
-    switch(msg.id)
-    {
-        case Messages::NEW_WORKING_FILE:
-            m_currentWorkingFilePath = msg.getData<std::string>();
-            break;
-            
-        case xy::Message::WindowMessage:
-            const auto& data = msg.getData<xy::Message::WindowEvent>();
-            m_windowSize = {data.width, data.height};
-            break;
-    }
     m_stateStack.handleMessage(msg);
 }
 
@@ -79,7 +79,7 @@ void Editor::draw()
     if (ImGui::BeginMenu("File"))
     {
         if (ImGui::MenuItem("New"))  m_stateStack.pushState(States::NEW);
-        if (ImGui::MenuItem("Open")) m_stateStack.pushState(States::OPEN);
+        if (ImGui::MenuItem("Open", "ctrl+o")) m_stateStack.pushState(States::OPEN);
         ImGui::Spacing();
         if (ImGui::MenuItem("Exit")) quit();
         ImGui::EndMenu();

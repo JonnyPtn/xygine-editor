@@ -51,7 +51,7 @@ void NewState::draw()
     ImGui::SameLine();
     if (xy::Nim::button("Browse"))
     {
-        path = xy::FileSystem::nativeOpenFolder();
+        path = xy::FileSystem::openFolderDialogue();
         path.copy(pathBuf,bufSize);
     }
     

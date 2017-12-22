@@ -26,6 +26,6 @@ public:
     xy::StateID stateID() const override;
     
 private:
-    
+    sf::Vector2u m_windowSize;
     
 };

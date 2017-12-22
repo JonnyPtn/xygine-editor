@@ -20,15 +20,20 @@
 OpenState::OpenState(xy::StateStack &stateStack, xy::State::Context context) :
 xy::State(stateStack, context)
 {
-    
+    m_windowSize = context.renderWindow.getSize();
 }
 
 bool OpenState::handleEvent(const sf::Event &evt) { 
     
 }
 
-void OpenState::handleMessage(const xy::Message &) { 
-
+void OpenState::handleMessage(const xy::Message &msg) {
+    
+    if (msg.id == xy::Message::WindowMessage)
+    {
+        const auto& data = msg.getData<xy::Message::WindowEvent>();
+        m_windowSize = {data.width, data.height};
+    }
 }
 
 bool OpenState::update(float dt) { 
@@ -37,8 +42,9 @@ bool OpenState::update(float dt) {
 
 void OpenState::draw()
 {
-    ImGui::ShowTestWindow();
-    
+    // Open covers entire window and centers
+    xy::Nim::setNextWindowSize(m_windowSize.x,m_windowSize.y);
+    xy::Nim::setNextWindowPosition(0, 0);
     xy::Nim::begin("Open");
     
     static std::string path = "";
@@ -46,11 +52,11 @@ void OpenState::draw()
     const int bufSize = 1024;
     static char inputBuf[1024];
     ImGui::ShowTestWindow();
-    ImGui::InputText("Sprite name: ", inputBuf, bufSize);
+    ImGui::InputText("File name", inputBuf, bufSize);
     
     if (xy::Nim::button("Browse"))
     {
-        path = xy::FileSystem::nativeOpenFile();
+        path = xy::FileSystem::openFileDialogue();
         requestStackPop();
         requestStackPush(States::SPRITE_EDIT);
         
@@ -58,7 +64,7 @@ void OpenState::draw()
         *msg = path;
     }
     
-    xy::Nim::end(); // New Sprite
+    xy::Nim::end(); // "Open"
 }
 
 xy::StateID OpenState::stateID() const {

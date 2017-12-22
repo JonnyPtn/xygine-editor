@@ -52,10 +52,6 @@ private:
 
     void initialise() override;
     void finalise() override;
-    
-    sf::Vector2u m_windowSize;
-    
-    std::string m_currentWorkingFilePath;
 };
 
 
