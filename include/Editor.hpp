@@ -52,6 +52,9 @@ private:
 
     void initialise() override;
     void finalise() override;
+    
+    // Window rect without main menu bar
+    sf::IntRect m_editorWindowRect;
 };
 
 

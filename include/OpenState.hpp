@@ -13,7 +13,7 @@ class OpenState : public xy::State
 {
 public:
     
-    OpenState(xy::StateStack& stateStack, Context context);
+    OpenState(xy::StateStack& stateStack, Context context, sf::IntRect editorRect);
     
     bool handleEvent(const sf::Event &evt) override;
     
@@ -26,6 +26,5 @@ public:
     xy::StateID stateID() const override;
     
 private:
-    sf::Vector2u m_windowSize;
-    
+    sf::IntRect m_windowRect;
 };

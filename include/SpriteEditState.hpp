@@ -40,8 +40,8 @@ private:
     {
         xy::Sprite::Animation   anim;
         sf::Sprite              sprite;
-        float                   frametime;
-        int                     frame;
+        float                   frametime = 0;
+        int                     frame = 0;
     };
     
     // key is just spritename + animName
@@ -51,4 +51,6 @@ private:
     int        m_id;
     static int m_instanceCount;
     bool       m_initialised;
+    sf::IntRect m_tabRect;
+    bool        m_unsavedChanges;
 };

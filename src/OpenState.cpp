@@ -17,10 +17,10 @@
 #include "States.hpp"
 #include "Messages.hpp"
 
-OpenState::OpenState(xy::StateStack &stateStack, xy::State::Context context) :
-xy::State(stateStack, context)
+OpenState::OpenState(xy::StateStack &stateStack, xy::State::Context context, sf::IntRect editorRect) :
+xy::State(stateStack, context),
+m_windowRect(editorRect)
 {
-    m_windowSize = context.renderWindow.getSize();
 }
 
 bool OpenState::handleEvent(const sf::Event &evt) { 
@@ -29,10 +29,10 @@ bool OpenState::handleEvent(const sf::Event &evt) {
 
 void OpenState::handleMessage(const xy::Message &msg) {
     
-    if (msg.id == xy::Message::WindowMessage)
+    if (msg.id == Messages::NEW_WORKING_RECT)
     {
-        const auto& data = msg.getData<xy::Message::WindowEvent>();
-        m_windowSize = {data.width, data.height};
+        const auto& data = msg.getData<sf::IntRect>();
+        m_windowRect = data;
     }
 }
 
@@ -43,9 +43,10 @@ bool OpenState::update(float dt) {
 void OpenState::draw()
 {
     // Open covers entire window and centers
-    xy::Nim::setNextWindowSize(ImGui::GetWindowWidth(),ImGui::GetWindowHeight());
-    xy::Nim::setNextWindowPosition(0, 0);
-    xy::Nim::begin("Open");
+    xy::Nim::setNextWindowSize(m_windowRect.width, m_windowRect.height);
+    xy::Nim::setNextWindowPosition(m_windowRect.left, m_windowRect.top);
+    bool open;
+    ImGui::Begin("Open", &open, ImGuiWindowFlags_NoTitleBar);
     
     static std::string path = "";
     

@@ -13,13 +13,15 @@
 #include <xyginext/core/Message.hpp>
 #include <SFML/Graphics.hpp>
 #include "imgui.h"
-#include "imgui_sfml.h"
+#include "imgui-SFML.h"
+#include "imgui_tabs.h"
 
 int SpriteEditState::m_instanceCount = 0;
 
 SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context) :
 xy::State(stateStack, context),
-m_initialised(false)
+m_initialised(false),
+m_unsavedChanges(false)
 {
     m_id = m_instanceCount++;
 }
@@ -61,33 +63,39 @@ bool SpriteEditState::update(float dt)
             a.second.sprite.setTextureRect(sf::IntRect(a.second.anim.frames[a.second.frame]));
         }
     }
-    return false;
+    return true;
 }
 
 void SpriteEditState::draw() {
     
     bool open(true);
     
-    // Imgui tab stuff would be great here...
-    xy::Nim::setNextWindowSize(ImGui::GetWindowWidth(), ImGui::GetWindowHeight());
-    xy::Nim::begin(m_name, &open);
+    bool selected = ImGui::TabItem(m_name.c_str(), &open, m_unsavedChanges ? ImGuiTabItemFlags_UnsavedDocument : 0);
     
-    // Show spritesheet first
-    xy::Nim::text("Sheet texture: " + m_sheet.getTexturePath());
-    ImGui::SameLine();
-    if (ImGui::Button("Browse"))
-    {
-        auto path = xy::FileSystem::openFileDialogue();
-        m_sheet.setTexturePath(xy::FileSystem::getRelativePath(path, m_path));
-    }
+    if (!open)
+        requestStackPop();
+    
+    if (!selected)
+        return;
+    
     auto& tex = m_texture.get(xy::FileSystem::getFilePath(m_path) + m_sheet.getTexturePath());
-    ImGui::Image(tex);
+    if (ImGui::TreeNode(("Sheet texture: " + m_sheet.getTexturePath()).c_str()))
+    {
+        if (ImGui::Button("Browse"))
+        {
+            auto path = xy::FileSystem::openFileDialogue();
+            m_sheet.setTexturePath(xy::FileSystem::getRelativePath(path, xy::FileSystem::getFilePath(m_path)));
+            m_unsavedChanges = true;
+        }
+        ImGui::Image(tex);
+        ImGui::TreePop();
+    }
     
     // Show sprite details
     int spriteCount(0);
     for (auto& spr : m_sheet.getSprites())
     {
-        if (ImGui::CollapsingHeader(spr.first.c_str()))
+        if (ImGui::TreeNode(spr.first.c_str()))
         {
             sf::Sprite sprite;
             sprite.setTexture(tex);
@@ -102,24 +110,28 @@ void SpriteEditState::draw() {
                 if (ImGui::TreeNode(("Animation " + std::string(anim.id.data()) + "##" + spr.first).c_str()))
                 {
                     if (!m_animations.count(spr.first + anim.id.data()))
-                        m_animations[spr.first + anim.id.data()] = {anim,sf::Sprite(tex),0.f,0};
+                    {
+                        sf::Sprite previewSprite(tex);
+                        previewSprite.setTextureRect(sf::IntRect(spr.second.getTextureRect()));
+                        m_animations[spr.first + anim.id.data()] = {anim,previewSprite,0.f,0};
+                    }
                     
                     ImGui::Image(m_animations[spr.first + anim.id.data()].sprite);
                     ImGui::TreePop();
                 }
             }
+            ImGui::TreePop();
         }
         ++spriteCount;
     }
     
     // Save button
     if (xy::Nim::button("Save"))
+    {
         m_sheet.saveToFile(m_path);
+        m_unsavedChanges = false;
+    }
     
-    xy::Nim::end();
-    
-    if (!open)
-        requestStackPop();
 }
 
 xy::StateID SpriteEditState::stateID() const {

@@ -36,6 +36,8 @@ source distribution.
 #include "NewState.hpp"
 #include "SpriteEditState.hpp"
 #include "Messages.hpp"
+#include "imgui_tabs.h"
+#include "imgui-SFML.h"
 
 Editor::Editor()
     : xy::App   (/*sf::ContextSettings(0, 0, 0, 3, 2, sf::ContextSettings::Core)*/),
@@ -84,10 +86,31 @@ void Editor::draw()
         if (ImGui::MenuItem("Exit")) quit();
         ImGui::EndMenu();
     }
-    ImGui::EndMainMenuBar();
     
+    // Check for main menu bar change in size
+    auto h = ImGui::GetWindowHeight();
+    auto Wh = getRenderWindow()->getSize().y;
+    if (Wh - h != m_editorWindowRect.height)
+    {
+        m_editorWindowRect.left = 0;
+        m_editorWindowRect.top = h;
+        m_editorWindowRect.width = getRenderWindow()->getSize().x;
+        m_editorWindowRect.height = Wh - h;
+        const auto& msg = getMessageBus().post<sf::IntRect>(Messages::NEW_WORKING_RECT);
+        *msg = m_editorWindowRect;
+    }
     
+    xy::Nim::setNextWindowSize(m_editorWindowRect.width,m_editorWindowRect.height);
+    xy::Nim::setNextWindowPosition(m_editorWindowRect.left,m_editorWindowRect.top);
+    
+    bool open(true);
+    ImGui::Begin("editor", &open, ImGuiWindowFlags_NoTitleBar);
+    ImGui::BeginTabBar("Resources");
     m_stateStack.draw();
+    ImGui::EndTabBar();
+    ImGui::End();
+    
+    ImGui::EndMainMenuBar();
 }
 
 void Editor::initialise()
@@ -107,6 +130,6 @@ void Editor::finalise()
 void Editor::registerStates()
 {
     m_stateStack.registerState<NewState>(States::NEW);
-    m_stateStack.registerState<OpenState>(States::OPEN);
+    m_stateStack.registerState<OpenState>(States::OPEN, m_editorWindowRect);
     m_stateStack.registerState<SpriteEditState>(States::SPRITE_EDIT);
 }
