@@ -43,7 +43,7 @@ bool OpenState::update(float dt) {
 void OpenState::draw()
 {
     // Open covers entire window and centers
-    xy::Nim::setNextWindowSize(m_windowSize.x,m_windowSize.y);
+    xy::Nim::setNextWindowSize(ImGui::GetWindowWidth(),ImGui::GetWindowHeight());
     xy::Nim::setNextWindowPosition(0, 0);
     xy::Nim::begin("Open");
     

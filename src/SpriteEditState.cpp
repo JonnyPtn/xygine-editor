@@ -37,7 +37,6 @@ void SpriteEditState::handleMessage(const xy::Message & msg)
                 m_path = msg.getData<std::string>();
                 m_name = xy::FileSystem::getFileName(m_path);
                 m_sheet.loadFromFile(m_path, m_texture);
-                m_path = xy::FileSystem::getFilePath(m_path);
                 
                 m_initialised = true;
             }
@@ -70,6 +69,7 @@ void SpriteEditState::draw() {
     bool open(true);
     
     // Imgui tab stuff would be great here...
+    xy::Nim::setNextWindowSize(ImGui::GetWindowWidth(), ImGui::GetWindowHeight());
     xy::Nim::begin(m_name, &open);
     
     // Show spritesheet first
@@ -80,7 +80,7 @@ void SpriteEditState::draw() {
         auto path = xy::FileSystem::openFileDialogue();
         m_sheet.setTexturePath(xy::FileSystem::getRelativePath(path, m_path));
     }
-    auto& tex = m_texture.get(m_path + m_sheet.getTexturePath());
+    auto& tex = m_texture.get(xy::FileSystem::getFilePath(m_path) + m_sheet.getTexturePath());
     ImGui::Image(tex);
     
     // Show sprite details
@@ -95,14 +95,16 @@ void SpriteEditState::draw() {
             ImGui::Image(sprite);
             
             // Show it's animations
-            for (auto& anim : m_sheet.getAnimations(spr.first))
+            auto& anims = spr.second.getAnimations();
+            for (auto i = 0u; i < spr.second.getAnimationCount(); i++)
             {
-                if (ImGui::TreeNode(("Animation " + anim.first + "##").c_str()))
+                auto& anim = anims[i];
+                if (ImGui::TreeNode(("Animation " + std::string(anim.id.data()) + "##" + spr.first).c_str()))
                 {
-                    if (!m_animations.count(spr.first + anim.first))
-                        m_animations[spr.first + anim.first] = {anim.second,sf::Sprite(tex),0.f,0};
+                    if (!m_animations.count(spr.first + anim.id.data()))
+                        m_animations[spr.first + anim.id.data()] = {anim,sf::Sprite(tex),0.f,0};
                     
-                    ImGui::Image(m_animations[spr.first + anim.first].sprite);
+                    ImGui::Image(m_animations[spr.first + anim.id.data()].sprite);
                     ImGui::TreePop();
                 }
             }
