@@ -30,6 +30,11 @@ source distribution.
 #include <SFML/Window/Event.hpp>
 
 #include <xyginext/gui/Gui.hpp>
+#include <xyginext/ecs/systems/RenderSystem.hpp>
+#include <xyginext/ecs/systems/SpriteSystem.hpp>
+#include <xyginext/ecs/systems/CameraSystem.hpp>
+#include <xyginext/ecs/components/Camera.hpp>
+#include <xyginext/ecs/components/Transform.hpp>
 
 #include "States.hpp"
 #include "OpenState.hpp"
@@ -39,10 +44,24 @@ source distribution.
 #include "imgui_tabs.h"
 #include "imgui-SFML.h"
 
+// How much of the width is preview (0 is no preview, 1 all preview)
+constexpr float PreviewWidth = 0.6f;
+
 Editor::Editor()
     : xy::App   (/*sf::ContextSettings(0, 0, 0, 3, 2, sf::ContextSettings::Core)*/),
-    m_stateStack({ *getRenderWindow(), *this })
+    m_stateStack({ *getRenderWindow(), *this }),
+    m_previewScene(getMessageBus())
 {
+    m_previewScene.addSystem<xy::CameraSystem>(getMessageBus());
+    m_previewScene.addSystem<xy::RenderSystem>(getMessageBus());
+    m_previewScene.addSystem<xy::SpriteSystem>(getMessageBus());
+    
+    auto cam = m_previewScene.createEntity();
+    auto size = getRenderWindow()->getSize();
+    cam.addComponent<xy::Camera>();
+    cam.addComponent<xy::Transform>();
+    m_previewScene.setActiveCamera(cam);
+    
 }
 
 //private
@@ -59,19 +78,47 @@ void Editor::handleEvent(const sf::Event& evt)
                 if (evt.key.control)
                     m_stateStack.pushState(States::OPEN);
                 break;
+                
+            // ctrl + n for new
+            case sf::Keyboard::N:
+                if (evt.key.control)
+                    m_stateStack.pushState(States::NEW);
+                break;
+            
+            // ctrl + x for exit
+            case sf::Keyboard::X:
+                if (evt.key.control)
+                    quit();
+                break;
+                
         }
+        break;
+            
+        case sf::Event::Closed:
+            quit();
+            break;
     }
     m_stateStack.handleEvent(evt);
+    m_previewScene.forwardEvent(evt);
 }
 
 void Editor::handleMessage(const xy::Message& msg)
 {
+    if (msg.id == Messages::PREVIEW_SPRITE)
+    {
+        // Add a new sprite to the preview
+        auto sprite = msg.getData<xy::Sprite>();
+        auto e = m_previewScene.createEntity();
+        e.addComponent(sprite);
+    }
     m_stateStack.handleMessage(msg);
+    m_previewScene.forwardMessage(msg);
 }
 
 void Editor::updateApp(float dt)
 {
     m_stateStack.update(dt);
+    m_previewScene.update(dt);
 }
 
 void Editor::draw()
@@ -80,10 +127,10 @@ void Editor::draw()
     ImGui::BeginMainMenuBar();
     if (ImGui::BeginMenu("File"))
     {
-        if (ImGui::MenuItem("New"))  m_stateStack.pushState(States::NEW);
+        if (ImGui::MenuItem("New", "ctrl+n"))  m_stateStack.pushState(States::NEW);
         if (ImGui::MenuItem("Open", "ctrl+o")) m_stateStack.pushState(States::OPEN);
-        ImGui::Spacing();
-        if (ImGui::MenuItem("Exit")) quit();
+        ImGui::Separator();
+        if (ImGui::MenuItem("Exit", "ctrl+x")) quit();
         ImGui::EndMenu();
     }
     
@@ -94,7 +141,7 @@ void Editor::draw()
     {
         m_editorWindowRect.left = 0;
         m_editorWindowRect.top = h;
-        m_editorWindowRect.width = getRenderWindow()->getSize().x;
+        m_editorWindowRect.width = getRenderWindow()->getSize().x * (1.f - PreviewWidth);
         m_editorWindowRect.height = Wh - h;
         const auto& msg = getMessageBus().post<sf::IntRect>(Messages::NEW_WORKING_RECT);
         *msg = m_editorWindowRect;
@@ -111,13 +158,14 @@ void Editor::draw()
     ImGui::End();
     
     ImGui::EndMainMenuBar();
+    
+    auto rw = getRenderWindow();
+    rw->draw(m_previewScene);
 }
 
 void Editor::initialise()
 {
     registerStates();
-
-
     getRenderWindow()->setKeyRepeatEnabled(false);
 }
 
@@ -130,6 +178,6 @@ void Editor::finalise()
 void Editor::registerStates()
 {
     m_stateStack.registerState<NewState>(States::NEW);
-    m_stateStack.registerState<OpenState>(States::OPEN, m_editorWindowRect);
-    m_stateStack.registerState<SpriteEditState>(States::SPRITE_EDIT);
+    m_stateStack.registerState<OpenState>(States::OPEN);
+    m_stateStack.registerState<SpriteEditState>(States::SPRITE_EDIT, m_previewScene);
 }

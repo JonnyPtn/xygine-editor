@@ -17,9 +17,8 @@
 #include "States.hpp"
 #include "Messages.hpp"
 
-OpenState::OpenState(xy::StateStack &stateStack, xy::State::Context context, sf::IntRect editorRect) :
-xy::State(stateStack, context),
-m_windowRect(editorRect)
+OpenState::OpenState(xy::StateStack &stateStack, xy::State::Context context) :
+xy::State(stateStack, context)
 {
 }
 
@@ -29,11 +28,6 @@ bool OpenState::handleEvent(const sf::Event &evt) {
 
 void OpenState::handleMessage(const xy::Message &msg) {
     
-    if (msg.id == Messages::NEW_WORKING_RECT)
-    {
-        const auto& data = msg.getData<sf::IntRect>();
-        m_windowRect = data;
-    }
 }
 
 bool OpenState::update(float dt) { 
@@ -43,16 +37,13 @@ bool OpenState::update(float dt) {
 void OpenState::draw()
 {
     // Open covers entire window and centers
-    xy::Nim::setNextWindowSize(m_windowRect.width, m_windowRect.height);
-    xy::Nim::setNextWindowPosition(m_windowRect.left, m_windowRect.top);
-    bool open;
-    ImGui::Begin("Open", &open, ImGuiWindowFlags_NoTitleBar);
+    ImGui::SetNextWindowPosCenter();
+    ImGui::Begin("Open", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
     
     static std::string path = "";
     
     const int bufSize = 1024;
     static char inputBuf[1024];
-    ImGui::ShowTestWindow();
     ImGui::InputText("File name", inputBuf, bufSize);
     
     if (xy::Nim::button("Browse"))

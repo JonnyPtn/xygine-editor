@@ -29,6 +29,7 @@ source distribution.
 #define GAME_HPP_
 
 #include <xyginext/core/App.hpp>
+#include <xyginext/ecs/Scene.hpp>
 #include "imgui.h"
 
 class Editor final : public xy::App
@@ -41,6 +42,7 @@ public:
 
 private:
 
+    // Not really a stack...
     xy::StateStack m_stateStack;
 
     void handleEvent(const sf::Event&) override;
@@ -55,6 +57,7 @@ private:
     
     // Window rect without main menu bar
     sf::IntRect m_editorWindowRect;
+    xy::Scene m_previewScene;
 };
 
 

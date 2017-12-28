@@ -12,13 +12,14 @@
 #include <xyginext/ecs/components/SpriteAnimation.hpp>
 #include <xyginext/resources/Resource.hpp>
 #include <xyginext/ecs/Entity.hpp>
+#include <xyginext/ecs/Scene.hpp>
 
 #include <SFML/Graphics.hpp>
 
 class SpriteEditState : public xy::State
 {
 public:
-    SpriteEditState(xy::StateStack& stateStack, Context context);
+    SpriteEditState(xy::StateStack& stateStack, Context context, xy::Scene& previewScene);
     
     bool handleEvent(const sf::Event &evt) override;
     
@@ -35,6 +36,11 @@ private:
     xy::TextureResource                 m_texture;
     std::string                         m_name;
     std::string                         m_path;
+    sf::Sprite                          m_previewSprite;
+    std::vector<std::string>            m_spriteNames;
+    std::string                         m_selectedSpriteName;
+    xy::Scene&                          m_previewScene;
+    xy::Entity                          m_previewEntity;
     
     struct AnimPreview
     {

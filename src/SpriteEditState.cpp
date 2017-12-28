@@ -12,16 +12,25 @@
 #include <xyginext/gui/Gui.hpp>
 #include <xyginext/core/Message.hpp>
 #include <SFML/Graphics.hpp>
+#include <xyginext/core/App.hpp>
 #include "imgui.h"
 #include "imgui-SFML.h"
 #include "imgui_tabs.h"
+#include <xyginext/ecs/Scene.hpp>
+#include <xyginext/ecs/components/Transform.hpp>
+#include <xyginext/ecs/components/Drawable.hpp>
 
 int SpriteEditState::m_instanceCount = 0;
 
-SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context) :
+constexpr int InputBufMax = 1024;
+
+SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context, xy::Scene& previewScene) :
 xy::State(stateStack, context),
 m_initialised(false),
-m_unsavedChanges(false)
+m_selectedSpriteName("Select a sprite"),
+m_unsavedChanges(false),
+m_previewScene(previewScene),
+m_previewEntity(0)
 {
     m_id = m_instanceCount++;
 }
@@ -72,64 +81,76 @@ void SpriteEditState::draw() {
     
     bool selected = ImGui::TabItem(m_name.c_str(), &open, m_unsavedChanges ? ImGuiTabItemFlags_UnsavedDocument : 0);
     
+    
     if (!open)
         requestStackPop();
     
     if (!selected)
         return;
     
+    // Show the texture being used first
+    auto texPath = m_sheet.getTexturePath();
+    std::array<char, InputBufMax> texPathInput = {{0}};
+    texPath.copy(texPathInput.begin(),texPath.size());
+    if (ImGui::InputText("Texture", texPathInput.data(), texPathInput.size()))
+    {
+        m_sheet.setTexturePath(std::string(texPathInput.data()));
+        m_unsavedChanges = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Browse"))
+    {
+        auto path = xy::FileSystem::openFileDialogue();
+        // Maybe xygine should handle this?
+        m_sheet.setTexturePath(xy::FileSystem::getRelativePath(path,m_path.substr(0,m_path.find_last_of('/'))));
+    }
+    
     auto& tex = m_texture.get(xy::FileSystem::getFilePath(m_path) + m_sheet.getTexturePath());
-    if (ImGui::TreeNode(("Sheet texture: " + m_sheet.getTexturePath()).c_str()))
+    if (ImGui::BeginCombo("Sprites", m_selectedSpriteName.c_str()))
     {
-        if (ImGui::Button("Browse"))
+        for (auto& spr : m_sheet.getSprites())
         {
-            auto path = xy::FileSystem::openFileDialogue();
-            m_sheet.setTexturePath(xy::FileSystem::getRelativePath(path, xy::FileSystem::getFilePath(m_path)));
-            m_unsavedChanges = true;
-        }
-        ImGui::Image(tex);
-        ImGui::TreePop();
-    }
-    
-    // Show sprite details
-    int spriteCount(0);
-    for (auto& spr : m_sheet.getSprites())
-    {
-        if (ImGui::TreeNode(spr.first.c_str()))
-        {
-            sf::Sprite sprite;
-            sprite.setTexture(tex);
-            sprite.setTextureRect(sf::IntRect(spr.second.getTextureRect()));
-            ImGui::Image(sprite);
-            
-            // Show it's animations
-            auto& anims = spr.second.getAnimations();
-            for (auto i = 0u; i < spr.second.getAnimationCount(); i++)
+            bool sprSelected(false);
+            ImGui::Selectable(spr.first.c_str(), &sprSelected);
+            if (sprSelected)
             {
-                auto& anim = anims[i];
-                if (ImGui::TreeNode(("Animation " + std::string(anim.id.data()) + "##" + spr.first).c_str()))
-                {
-                    if (!m_animations.count(spr.first + anim.id.data()))
-                    {
-                        sf::Sprite previewSprite(tex);
-                        previewSprite.setTextureRect(sf::IntRect(spr.second.getTextureRect()));
-                        m_animations[spr.first + anim.id.data()] = {anim,previewSprite,0.f,0};
-                    }
-                    
-                    ImGui::Image(m_animations[spr.first + anim.id.data()].sprite);
-                    ImGui::TreePop();
-                }
+                auto sprite = spr.second;
+                    // Update preview with new sprite
+                    if (m_previewEntity > 0)
+                        m_previewScene.destroyEntity(m_previewEntity);
+                    m_previewScene.destroyEntity(m_previewEntity);
+                    m_previewEntity = m_previewScene.createEntity();
+                    m_previewEntity.addComponent(sprite);
+                    m_previewEntity.addComponent<xy::Transform>();
+                    m_previewEntity.addComponent<xy::Drawable>();
+                m_selectedSpriteName = spr.first;
+                
             }
-            ImGui::TreePop();
         }
-        ++spriteCount;
+        ImGui::EndCombo();
     }
     
-    // Save button
-    if (xy::Nim::button("Save"))
+    // bad...
+    if (m_selectedSpriteName != "Select a sprite")
     {
-        m_sheet.saveToFile(m_path);
-        m_unsavedChanges = false;
+        // Basic sprite details
+        auto sprite = m_sheet.getSprite(m_selectedSpriteName);
+        ImGui::Text("Texture Rect:");
+        auto rect = sf::IntRect(sprite.getTextureRect());
+        if (ImGui::InputInt("left",&rect.left)
+            || ImGui::InputInt("top",&rect.top)
+            || ImGui::InputInt("width", &rect.width)
+            || ImGui::InputInt("height", &rect.height))
+        {
+            sprite.setTextureRect(sf::FloatRect(rect));
+        }
+        
+        // Save button
+        if (xy::Nim::button("Save"))
+        {
+            m_sheet.saveToFile(m_path);
+            m_unsavedChanges = false;
+        }
     }
     
 }
