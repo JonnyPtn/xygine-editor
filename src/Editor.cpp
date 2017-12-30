@@ -32,6 +32,7 @@ source distribution.
 #include <xyginext/gui/Gui.hpp>
 #include <xyginext/ecs/systems/RenderSystem.hpp>
 #include <xyginext/ecs/systems/SpriteSystem.hpp>
+#include <xyginext/ecs/systems/SpriteAnimator.hpp>
 #include <xyginext/ecs/systems/CameraSystem.hpp>
 #include <xyginext/ecs/components/Camera.hpp>
 #include <xyginext/ecs/components/Transform.hpp>
@@ -53,6 +54,7 @@ Editor::Editor()
     m_previewScene(getMessageBus())
 {
     m_previewScene.addSystem<xy::CameraSystem>(getMessageBus());
+    m_previewScene.addSystem<xy::SpriteAnimator>(getMessageBus());
     m_previewScene.addSystem<xy::RenderSystem>(getMessageBus());
     m_previewScene.addSystem<xy::SpriteSystem>(getMessageBus());
     

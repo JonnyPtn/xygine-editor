@@ -39,8 +39,11 @@ private:
     sf::Sprite                          m_previewSprite;
     std::vector<std::string>            m_spriteNames;
     std::string                         m_selectedSpriteName;
+    std::string                         m_selectedAnimName;
     xy::Scene&                          m_previewScene;
     xy::Entity                          m_previewEntity;
+    
+    void updatePreview();
     
     struct AnimPreview
     {

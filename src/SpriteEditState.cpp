@@ -28,6 +28,7 @@ SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context, xy
 xy::State(stateStack, context),
 m_initialised(false),
 m_selectedSpriteName("Select a sprite"),
+m_selectedAnimName("Select an animation"),
 m_unsavedChanges(false),
 m_previewScene(previewScene),
 m_previewEntity(0)
@@ -114,17 +115,8 @@ void SpriteEditState::draw() {
             ImGui::Selectable(spr.first.c_str(), &sprSelected);
             if (sprSelected)
             {
-                auto sprite = spr.second;
-                    // Update preview with new sprite
-                    if (m_previewEntity > 0)
-                        m_previewScene.destroyEntity(m_previewEntity);
-                    m_previewScene.destroyEntity(m_previewEntity);
-                    m_previewEntity = m_previewScene.createEntity();
-                    m_previewEntity.addComponent(sprite);
-                    m_previewEntity.addComponent<xy::Transform>();
-                    m_previewEntity.addComponent<xy::Drawable>();
                 m_selectedSpriteName = spr.first;
-                
+                updatePreview();
             }
         }
         ImGui::EndCombo();
@@ -133,17 +125,41 @@ void SpriteEditState::draw() {
     // bad...
     if (m_selectedSpriteName != "Select a sprite")
     {
-        // Basic sprite details
         auto sprite = m_sheet.getSprite(m_selectedSpriteName);
+        
+        // Texture rect
         ImGui::Text("Texture Rect:");
         auto rect = sf::IntRect(sprite.getTextureRect());
-        if (ImGui::InputInt("left",&rect.left)
+        bool modifiedRect = ImGui::InputInt("left",&rect.left)
             || ImGui::InputInt("top",&rect.top)
             || ImGui::InputInt("width", &rect.width)
-            || ImGui::InputInt("height", &rect.height))
+        || ImGui::InputInt("height", &rect.height);
+        
+        if (modifiedRect)
         {
             sprite.setTextureRect(sf::FloatRect(rect));
+            m_sheet.setSprite(m_selectedSpriteName, sprite);
+            updatePreview();
+            m_unsavedChanges = true;
         }
+        
+        // Animations
+        if (ImGui::BeginCombo("Animations", m_selectedAnimName.c_str()))
+        {
+            auto& anims = sprite.getAnimations();
+            for (auto& anim : anims)
+            {
+                bool animSelected(false);
+                ImGui::Selectable(anim.id.data(), &animSelected);
+                if (animSelected)
+                {
+                    m_selectedAnimName = std::string(anim.id.data());
+                    updatePreview();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        
         
         // Save button
         if (xy::Nim::button("Save"))
@@ -153,6 +169,23 @@ void SpriteEditState::draw() {
         }
     }
     
+}
+
+void SpriteEditState::updatePreview()
+{
+    // Update preview with new sprite
+    if (m_previewEntity > 0)
+        m_previewScene.destroyEntity(m_previewEntity);
+    m_previewEntity = m_previewScene.createEntity();
+    m_previewEntity.addComponent(m_sheet.getSprite(m_selectedSpriteName));
+    m_previewEntity.addComponent<xy::Transform>();
+    m_previewEntity.addComponent<xy::Drawable>();
+    
+    // also bad...
+    if (m_selectedAnimName != "Select an animation")
+    {
+        m_previewEntity.addComponent<xy::SpriteAnimation>().play(m_sheet.getAnimationIndex(m_selectedAnimName, m_selectedSpriteName) );
+    }
 }
 
 xy::StateID SpriteEditState::stateID() const {
