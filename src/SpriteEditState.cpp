@@ -162,6 +162,8 @@ void SpriteEditState::draw() {
             updatePreview();
             m_unsavedChanges = true;
         }
+        
+        // Colour
         ImVec4 col= sprite.getColour();
         if (ImGui::ColorEdit3("Colour", (float*)&col))
         {
@@ -191,7 +193,25 @@ void SpriteEditState::draw() {
         // also bad...
         if (m_selectedAnimName != "Select an animation")
         {
-            
+            auto index = m_sheet.getAnimationIndex(m_selectedAnimName, m_selectedSpriteName);
+            auto& anim = sprite.getAnimations()[index];
+            int fc = anim.frameCount;
+            if (ImGui::InputInt("Frames", &fc))
+            {
+                anim.frameCount = fc;
+                m_sheet.setSprite(m_selectedSpriteName, sprite);
+                updatePreview();
+            }
+            if (ImGui::InputFloat("Framerate", &anim.framerate))
+            {
+                m_sheet.setSprite(m_selectedSpriteName, sprite);
+                updatePreview();
+            }
+            if (ImGui::Checkbox("Looped", &anim.looped))
+            {
+                m_sheet.setSprite(m_selectedSpriteName, sprite);
+                updatePreview();
+            }
         }
         
         // Save button
