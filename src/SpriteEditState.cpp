@@ -19,24 +19,50 @@
 #include <xyginext/ecs/Scene.hpp>
 #include <xyginext/ecs/components/Transform.hpp>
 #include <xyginext/ecs/components/Drawable.hpp>
+#include <xyginext/ecs/components/Camera.hpp>
+#include <xyginext/ecs/systems/RenderSystem.hpp>
+#include <xyginext/ecs/systems/SpriteSystem.hpp>
+#include <xyginext/ecs/systems/SpriteAnimator.hpp>
+#include <xyginext/ecs/systems/CameraSystem.hpp>
 
 int SpriteEditState::m_instanceCount = 0;
 
+constexpr float PreviewWidth = 0.6f;
+
 constexpr int InputBufMax = 1024;
 
-SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context, xy::Scene& previewScene) :
+SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context) :
 xy::State(stateStack, context),
 m_initialised(false),
 m_selectedSpriteName("Select a sprite"),
 m_selectedAnimName("Select an animation"),
 m_unsavedChanges(false),
-m_previewScene(previewScene),
-m_previewEntity(0)
+m_previewScene(context.appInstance.getMessageBus()),
+m_previewEntity(0),
+m_draggingPreview(false)
 {
     m_id = m_instanceCount++;
+    
+    auto& mb = getContext().appInstance.getMessageBus();
+    m_previewScene.addSystem<xy::CameraSystem>(mb);
+    m_previewScene.addSystem<xy::SpriteAnimator>(mb);
+    m_previewScene.addSystem<xy::RenderSystem>(mb);
+    m_previewScene.addSystem<xy::SpriteSystem>(mb);
+    
+    // Add camera entity
+    m_camEntity = m_previewScene.createEntity();
+    m_camEntity.addComponent<xy::Camera>().setViewport({1.f - PreviewWidth, 0.f, PreviewWidth, 1.f});
+    auto winSize = context.appInstance.getRenderWindow()->getSize();
+    m_camEntity.getComponent<xy::Camera>().setView({winSize.x * PreviewWidth, static_cast<float>(winSize.y)});
+    m_camEntity.addComponent<xy::Transform>();
+    m_previewScene.setActiveCamera(m_camEntity);
 }
 
-bool SpriteEditState::handleEvent(const sf::Event &evt) {
+bool SpriteEditState::handleEvent(const sf::Event &evt)
+{
+    switch (evt.type)
+    {
+    }
 }
 
 void SpriteEditState::handleMessage(const xy::Message & msg)
@@ -54,31 +80,19 @@ void SpriteEditState::handleMessage(const xy::Message & msg)
             }
             break;
     }
+    m_previewScene.forwardMessage(msg);
 }
 
 bool SpriteEditState::update(float dt)
 {
-    // Update anim previews
-    for (auto& a : m_animations)
-    {
-        a.second.frametime -= dt;
-        if (a.second.frametime < 0 && a.second.anim.frameCount > 0)
-        {
-            XY_ASSERT(a.second.anim.framerate > 0, "Illegal Frame Rate");
-            XY_ASSERT(a.second.anim.frameCount > 0, "Illegal Frame Count");
-            a.second.frametime += (1.f / a.second.anim.framerate);
-            
-            a.second.frame = (a.second.frame + 1) % a.second.anim.frameCount;
-            
-            a.second.sprite.setTextureRect(sf::IntRect(a.second.anim.frames[a.second.frame]));
-        }
-    }
-    return true;
+    m_previewScene.update(dt);
 }
 
 void SpriteEditState::draw() {
     
     bool open(true);
+    
+    auto window = getContext().appInstance.getRenderWindow();
     
     bool selected = ImGui::TabItem(m_name.c_str(), &open, m_unsavedChanges ? ImGuiTabItemFlags_UnsavedDocument : 0);
     
@@ -88,6 +102,13 @@ void SpriteEditState::draw() {
     
     if (!selected)
         return;
+    
+    ImGui::SetNextWindowPos({ImGui::GetWindowPos().x, ImGui::GetWindowPos().y + ImGui::GetWindowHeight()});
+    ImGui::SetNextWindowSize({window->getSize().x * (1.f - PreviewWidth),static_cast<float>(window->getSize().y)});
+
+    
+    ImGui::Begin("Properties" , nullptr,ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+
     
     // Show the texture being used first
     auto texPath = m_sheet.getTexturePath();
@@ -130,17 +151,24 @@ void SpriteEditState::draw() {
         // Texture rect
         ImGui::Text("Texture Rect:");
         auto rect = sf::IntRect(sprite.getTextureRect());
-        bool modifiedRect = ImGui::InputInt("left",&rect.left)
-            || ImGui::InputInt("top",&rect.top)
-            || ImGui::InputInt("width", &rect.width)
-        || ImGui::InputInt("height", &rect.height);
+        bool left = ImGui::InputInt("left",&rect.left);
+        bool top = ImGui::InputInt("top",&rect.top);
+        bool width = ImGui::InputInt("width", &rect.width);
+        bool height = ImGui::InputInt("height", &rect.height);
         
-        if (modifiedRect)
+        if (left || top || width || height)
         {
             sprite.setTextureRect(sf::FloatRect(rect));
-            m_sheet.setSprite(m_selectedSpriteName, sprite);
             updatePreview();
             m_unsavedChanges = true;
+        }
+        ImVec4 col= sprite.getColour();
+        if (ImGui::ColorEdit3("Colour", (float*)&col))
+        {
+            sprite.setColour(col);
+            m_sheet.setSprite(m_selectedSpriteName, sprite);
+            
+            updatePreview();
         }
         
         // Animations
@@ -160,6 +188,11 @@ void SpriteEditState::draw() {
             ImGui::EndCombo();
         }
         
+        // also bad...
+        if (m_selectedAnimName != "Select an animation")
+        {
+            
+        }
         
         // Save button
         if (xy::Nim::button("Save"))
@@ -168,7 +201,8 @@ void SpriteEditState::draw() {
             m_unsavedChanges = false;
         }
     }
-    
+    ImGui::End();
+    window->draw(m_previewScene);
 }
 
 void SpriteEditState::updatePreview()
@@ -176,10 +210,20 @@ void SpriteEditState::updatePreview()
     // Update preview with new sprite
     if (m_previewEntity > 0)
         m_previewScene.destroyEntity(m_previewEntity);
+    
     m_previewEntity = m_previewScene.createEntity();
     m_previewEntity.addComponent(m_sheet.getSprite(m_selectedSpriteName));
     m_previewEntity.addComponent<xy::Transform>();
     m_previewEntity.addComponent<xy::Drawable>();
+    
+    // Adjust the camera so the sprite fills the view
+    auto view = m_camEntity.getComponent<xy::Camera>().getView();
+    auto size = m_previewEntity.getComponent<xy::Sprite>().getSize();
+    
+    auto zoom = std::min(float(view.x)/float(size.x), float(view.y)/float(size.y));
+    
+    m_camEntity.getComponent<xy::Camera>().zoom(zoom);
+    m_camEntity.getComponent<xy::Transform>().setPosition(size.x/2,size.y/2);
     
     // also bad...
     if (m_selectedAnimName != "Select an animation")

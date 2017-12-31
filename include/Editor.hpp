@@ -57,7 +57,6 @@ private:
     
     // Window rect without main menu bar
     sf::IntRect m_editorWindowRect;
-    xy::Scene m_previewScene;
 };
 
 

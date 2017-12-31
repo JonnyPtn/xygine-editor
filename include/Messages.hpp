@@ -12,7 +12,4 @@
 enum Messages
 {
     NEW_WORKING_FILE = xy::Message::Count,
-    NEW_WORKING_RECT,
-    PREVIEW_SPRITE,
-    
 };

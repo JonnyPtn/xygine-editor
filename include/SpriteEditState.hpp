@@ -19,7 +19,7 @@
 class SpriteEditState : public xy::State
 {
 public:
-    SpriteEditState(xy::StateStack& stateStack, Context context, xy::Scene& previewScene);
+    SpriteEditState(xy::StateStack& stateStack, Context context);
     
     bool handleEvent(const sf::Event &evt) override;
     
@@ -36,12 +36,13 @@ private:
     xy::TextureResource                 m_texture;
     std::string                         m_name;
     std::string                         m_path;
-    sf::Sprite                          m_previewSprite;
     std::vector<std::string>            m_spriteNames;
     std::string                         m_selectedSpriteName;
     std::string                         m_selectedAnimName;
-    xy::Scene&                          m_previewScene;
+    xy::Scene                           m_previewScene;
     xy::Entity                          m_previewEntity;
+    xy::Entity                          m_camEntity;
+    bool                                m_draggingPreview;
     
     void updatePreview();
     
