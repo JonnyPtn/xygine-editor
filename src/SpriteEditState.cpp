@@ -29,13 +29,16 @@ int SpriteEditState::m_instanceCount = 0;
 
 constexpr float PreviewWidth = 0.6f;
 
+static const std::string SelectASpriteStr("Select A Sprite");
+static const std::string SelectAnAnimStr("Select An Animation");
+
 constexpr int InputBufMax = 1024;
 
 SpriteEditState::SpriteEditState(xy::StateStack& stateStack, Context context) :
 xy::State(stateStack, context),
 m_initialised(false),
-m_selectedSpriteName("Select a sprite"),
-m_selectedAnimName("Select an animation"),
+m_selectedSpriteName(SelectASpriteStr),
+m_selectedAnimName(SelectAnAnimStr),
 m_unsavedChanges(false),
 m_previewScene(context.appInstance.getMessageBus()),
 m_previewEntity(0),
@@ -143,8 +146,8 @@ void SpriteEditState::draw() {
         ImGui::EndCombo();
     }
     
-    // bad...
-    if (m_selectedSpriteName != "Select a sprite")
+    // Select a sprite
+    if (m_selectedSpriteName != SelectASpriteStr)
     {
         auto sprite = m_sheet.getSprite(m_selectedSpriteName);
         
@@ -190,8 +193,8 @@ void SpriteEditState::draw() {
             ImGui::EndCombo();
         }
         
-        // also bad...
-        if (m_selectedAnimName != "Select an animation")
+        // Select an animation
+        if (m_selectedAnimName != SelectAnAnimStr)
         {
             auto index = m_sheet.getAnimationIndex(m_selectedAnimName, m_selectedSpriteName);
             auto& anim = sprite.getAnimations()[index];
@@ -212,6 +215,21 @@ void SpriteEditState::draw() {
                 m_sheet.setSprite(m_selectedSpriteName, sprite);
                 updatePreview();
             }
+            
+            // Delete Sprite
+            if (xy::Nim::button("Delete Animation"))
+            {
+                // Err....
+                m_selectedAnimName = SelectAnAnimStr;
+            }
+        }
+        
+        // Delete Sprite
+        if (xy::Nim::button("Delete Sprite"))
+        {
+            m_sheet.removeSprite(m_selectedSpriteName);
+            m_selectedSpriteName = SelectASpriteStr;
+            m_selectedAnimName = SelectAnAnimStr;
         }
         
         // Save button
