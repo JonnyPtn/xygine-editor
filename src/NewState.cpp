@@ -11,6 +11,7 @@
 #include <xyginext/core/Log.hpp>
 #include <xyginext/core/FileSystem.hpp>
 #include <xyginext/core/Message.hpp>
+#include <xyginext/core/App.hpp>
 
 #include <xyginext/ecs/components/Sprite.hpp>
 #include <xyginext/graphics/SpriteSheet.hpp>
@@ -40,13 +41,19 @@ bool NewState::update(float dt) {
 
 void NewState::draw()
 {
-    xy::Nim::begin("New SpriteSheet");
+    ImGui::SetNextWindowPosCenter();
+    bool open(true);
+    ImGui::Begin("New", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    
+    if (!open)
+        requestStackPop();
     
     static std::string path = "", name = "";
     
     const int bufSize = 1024;
     static char nameBuf[bufSize], pathBuf[bufSize];
     ImGui::InputText("SpriteSheet name", nameBuf, bufSize);
+    
     ImGui::InputText("Path", pathBuf, bufSize);
     ImGui::SameLine();
     if (xy::Nim::button("Browse"))
@@ -59,9 +66,12 @@ void NewState::draw()
     if (xy::Nim::button("Create"))
     {
         name = nameBuf;
+            
         createNewSpriteSheet(path, name);
         requestStackClear();
         requestStackPush(States::SPRITE_EDIT);
+        auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::NEW_WORKING_FILE);
+        *msg = path + "/" + name + ".spt"; // such magic
     }
     
     xy::Nim::end(); // New Sprite

@@ -38,7 +38,11 @@ void OpenState::draw()
 {
     // Open covers entire window and centers
     ImGui::SetNextWindowPosCenter();
-    ImGui::Begin("Open", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    bool open(true);
+    ImGui::Begin("Open", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    
+    if (!open)
+        requestStackPop();
     
     static std::string path = "";
     

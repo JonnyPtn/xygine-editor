@@ -46,18 +46,6 @@ private:
     
     void updatePreview();
     
-    struct AnimPreview
-    {
-        xy::Sprite::Animation   anim;
-        sf::Sprite              sprite;
-        float                   frametime = 0;
-        int                     frame = 0;
-    };
-    
-    // key is just spritename + animName
-    std::unordered_map<std::string, AnimPreview>  m_animations;
-    
-    
     int        m_id;
     static int m_instanceCount;
     bool       m_initialised;

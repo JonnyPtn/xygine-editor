@@ -1,22 +1,22 @@
-#include <imgui.h>
+#include "imgui.h"
 
 typedef int ImGuiTabBarFlags;
 typedef int ImGuiTabItemFlags;
 
 namespace ImGui
 {
-    
-    IMGUI_API void          BeginTabBar(const char* str_id, ImGuiTabBarFlags flags = 0);
-    IMGUI_API void          EndTabBar();
-    IMGUI_API bool          TabItem(const char* label, bool* p_open = NULL, ImGuiTabItemFlags = 0);
-    
-    // FIXME-WIP: Obsolete API
-    IMGUI_API void          SetTabItemClosed(const char* label);
-    IMGUI_API void          SetTabItemSelected(const char* label);
-    
-    IMGUI_API void          ShowTabsDemo(const char* title, bool* p_open = NULL);
-    IMGUI_API void          ShowTabsDebug();
-    
+
+IMGUI_API void          BeginTabBar(const char* str_id, ImGuiTabBarFlags flags = 0);
+IMGUI_API void          EndTabBar();
+IMGUI_API bool          TabItem(const char* label, bool* p_open = NULL, ImGuiTabItemFlags = 0);
+
+// FIXME-WIP: Obsolete API
+IMGUI_API void          SetTabItemClosed(const char* label);
+IMGUI_API void          SetTabItemSelected(const char* label);
+
+IMGUI_API void          ShowTabsDemo(const char* title, bool* p_open = NULL);
+IMGUI_API void          ShowTabsDebug();
+
 };
 
 enum ImGuiTabBarFlags_
@@ -29,7 +29,7 @@ enum ImGuiTabBarFlags_
     ImGuiTabBarFlags_NoSelectionOnAppearing         = 1 << 4,   // Do not become automatically selected when appearing
     ImGuiTabBarFlags_SizingPolicyFit                = 1 << 5,
     ImGuiTabBarFlags_SizingPolicyEqual              = 1 << 6,
-    
+
     ImGuiTabBarFlags_SizingPolicyMask_              = ImGuiTabBarFlags_SizingPolicyFit | ImGuiTabBarFlags_SizingPolicyEqual,
     ImGuiTabBarFlags_SizingPolicyDefault_           = ImGuiTabBarFlags_SizingPolicyFit
 };

@@ -41,11 +41,27 @@ source distribution.
 #include "imgui_tabs.h"
 #include "imgui-SFML.h"
 
+//absolute paths to open documents
+std::vector<std::string> openDocuments;
+    
+const std::string applicationName = "xygine Editor";
+
 Editor::Editor()
     : xy::App   (/*sf::ContextSettings(0, 0, 0, 3, 2, sf::ContextSettings::Core)*/),
     m_stateStack({ *getRenderWindow(), *this })
 {
-    ImGui::StyleColorsDark(&ImGui::GetStyle());
+    xy::App::setApplicationName(applicationName);
+    // Check for any previously open documents
+    std::ifstream doc(xy::FileSystem::getConfigDirectory(applicationName));
+    if (doc.good())
+    {
+        std::string file;
+        while(doc >> file)
+        {
+            auto msg = getMessageBus().post<std::string>(Messages::NEW_WORKING_FILE);
+            *msg = file;
+        }
+    }
 }
 
 //private
@@ -90,6 +106,9 @@ void Editor::handleEvent(const sf::Event& evt)
 
 void Editor::handleMessage(const xy::Message& msg)
 {
+    if (msg.id == Messages::NEW_WORKING_FILE)
+        openDocuments.push_back(msg.getData<std::string>());
+    
     m_stateStack.handleMessage(msg);
 }
 
@@ -114,19 +133,22 @@ void Editor::draw()
     }
     
     // View menu
+    static bool showStyleEditor = false;
     if (ImGui::BeginMenu("View"))
     {
-        if (ImGui::BeginMenu("Style"))
+        if (ImGui::BeginMenu("Windows"))
         {
-            if (ImGui::MenuItem("Classic"))
-                ImGui::StyleColorsClassic(&ImGui::GetStyle());
-            if (ImGui::MenuItem("Light"))
-                ImGui::StyleColorsLight(&ImGui::GetStyle());
-            if (ImGui::MenuItem("Dark"))
-                ImGui::StyleColorsDark(&ImGui::GetStyle());
+            ImGui::MenuItem("Editor Style", nullptr, &showStyleEditor);
             ImGui::EndMenu();
         }
         ImGui::EndMenu();
+    }
+    
+    if (showStyleEditor)
+    {
+        ImGui::Begin("Editor Style");
+        ImGui::ShowStyleEditor();
+        ImGui::End();
     }
     
     xy::Nim::setNextWindowPosition(0,ImGui::GetWindowHeight());
@@ -138,6 +160,7 @@ void Editor::draw()
     m_stateStack.draw();
     ImGui::EndTabBar();
     ImGui::End();
+    
     ImGui::EndMainMenuBar();
 }
 

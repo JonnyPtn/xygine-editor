@@ -5,4 +5,5 @@ set(PROJECT_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/OpenState.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/NewState.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/SpriteEditState.cpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_extras.cpp 
   PARENT_SCOPE)
