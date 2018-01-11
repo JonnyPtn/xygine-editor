@@ -11,5 +11,5 @@
 
 enum Messages
 {
-    NEW_WORKING_FILE = xy::Message::Count,
+    OPEN_PROJECT = xy::Message::Count,
 };

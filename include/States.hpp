@@ -12,7 +12,7 @@ enum States
 {
     NEW,
     OPEN,
-    SPRITE_EDIT,
+    PROJECT_EDIT,
 };
 
 

@@ -4,7 +4,7 @@ set(PROJECT_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/States.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/OpenState.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/NewState.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/SpriteEditState.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/ProjectEditState.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Messages.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_extras.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/Project.hpp 
   PARENT_SCOPE)

@@ -36,13 +36,13 @@ source distribution.
 #include "States.hpp"
 #include "OpenState.hpp"
 #include "NewState.hpp"
-#include "SpriteEditState.hpp"
+#include "ProjectEditState.hpp"
 #include "Messages.hpp"
 #include "imgui_tabs.h"
 #include "imgui-SFML.h"
 
 //absolute paths to open documents
-std::vector<std::string> openDocuments;
+std::string currentProject;
     
 const std::string applicationName = "xygine Editor";
 
@@ -51,17 +51,8 @@ Editor::Editor()
     m_stateStack({ *getRenderWindow(), *this })
 {
     xy::App::setApplicationName(applicationName);
-    // Check for any previously open documents
-    std::ifstream doc(xy::FileSystem::getConfigDirectory(applicationName));
-    if (doc.good())
-    {
-        std::string file;
-        while(doc >> file)
-        {
-            auto msg = getMessageBus().post<std::string>(Messages::NEW_WORKING_FILE);
-            *msg = file;
-        }
-    }
+    
+    m_stateStack.pushState(States::PROJECT_EDIT);
 }
 
 //private
@@ -105,10 +96,7 @@ void Editor::handleEvent(const sf::Event& evt)
 }
 
 void Editor::handleMessage(const xy::Message& msg)
-{
-    if (msg.id == Messages::NEW_WORKING_FILE)
-        openDocuments.push_back(msg.getData<std::string>());
-    
+{   
     m_stateStack.handleMessage(msg);
 }
 
@@ -146,20 +134,16 @@ void Editor::draw()
     
     if (showStyleEditor)
     {
-        ImGui::Begin("Editor Style");
+        ImGui::Begin("Editor Style", &showStyleEditor);
         ImGui::ShowStyleEditor();
         ImGui::End();
     }
     
-    xy::Nim::setNextWindowPosition(0,ImGui::GetWindowHeight());
-    xy::Nim::setNextWindowSize(getRenderWindow()->getSize().x,0.f);
-    
-    bool open(true);
-    ImGui::Begin("editor", &open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-    ImGui::BeginTabBar("Resources");
     m_stateStack.draw();
-    ImGui::EndTabBar();
-    ImGui::End();
+    
+    // Show fps in menu bar
+    ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 60);
+    ImGui::Text(std::string("FPS: " + std::to_string(int(std::round(ImGui::GetIO().Framerate)))).c_str()); // wuzn't me
     
     ImGui::EndMainMenuBar();
 }
@@ -180,5 +164,5 @@ void Editor::registerStates()
 {
     m_stateStack.registerState<NewState>(States::NEW);
     m_stateStack.registerState<OpenState>(States::OPEN);
-    m_stateStack.registerState<SpriteEditState>(States::SPRITE_EDIT);
+    m_stateStack.registerState<ProjectEditState>(States::PROJECT_EDIT);
 }

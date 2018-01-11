@@ -30,7 +30,9 @@ source distribution.
 
 #include <xyginext/core/App.hpp>
 #include <xyginext/ecs/Scene.hpp>
+#include <memory>
 #include "imgui.h"
+#include "Project.hpp"
 
 class Editor final : public xy::App
 {
@@ -42,7 +44,6 @@ public:
 
 private:
 
-    // Not really a stack...
     xy::StateStack m_stateStack;
 
     void handleEvent(const sf::Event&) override;

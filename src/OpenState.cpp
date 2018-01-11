@@ -22,7 +22,8 @@ xy::State(stateStack, context)
 {
 }
 
-bool OpenState::handleEvent(const sf::Event &evt) { 
+bool OpenState::handleEvent(const sf::Event &evt) {
+    return false;
     
 }
 
@@ -39,7 +40,7 @@ void OpenState::draw()
     // Open covers entire window and centers
     ImGui::SetNextWindowPosCenter();
     bool open(true);
-    ImGui::Begin("Open", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Open", &open, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
     
     if (!open)
         requestStackPop();
@@ -53,11 +54,13 @@ void OpenState::draw()
     if (xy::Nim::button("Browse"))
     {
         path = xy::FileSystem::openFileDialogue();
-        requestStackPop();
-        requestStackPush(States::SPRITE_EDIT);
-        
-        auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::NEW_WORKING_FILE);
-        *msg = path;
+        if (path.length())
+        {
+            requestStackPop();
+            
+            auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::OPEN_PROJECT);
+            *msg = path;
+        }
     }
     
     xy::Nim::end(); // "Open"

@@ -10,6 +10,7 @@ namespace sf
 {
     class Event;
     class RenderTarget;
+    class RenderTexture;
     class RenderWindow;
     class Sprite;
     class Texture;
@@ -58,6 +59,20 @@ namespace SFML
     void Image(const sf::Sprite& sprite, const sf::Vector2f& size,
         const sf::Color& tintColor = sf::Color::White,
         const sf::Color& borderColor = sf::Color::Transparent);
+    
+    void Image(const sf::RenderTexture& rendertexture,
+               const sf::Color& tintColor = sf::Color::White,
+               const sf::Color& borderColor = sf::Color::Transparent);
+    void Image(const sf::RenderTexture& rendertexture, const sf::Vector2f& size,
+               const sf::Color& tintColor = sf::Color::White,
+               const sf::Color& borderColor = sf::Color::Transparent);
+    void Image(const sf::RenderTexture& rendertexture, const sf::FloatRect& textureRect,
+               const sf::Color& tintColor = sf::Color::White,
+               const sf::Color& borderColor = sf::Color::Transparent);
+    void Image(const sf::RenderTexture& rendertexture, const sf::Vector2f& size, const sf::FloatRect& textureRect,
+               const sf::Color& tintColor = sf::Color::White,
+               const sf::Color& borderColor = sf::Color::Transparent);
+
 
 // ImageButton overloads
     bool ImageButton(const sf::Texture& texture, const int framePadding = -1,

@@ -26,6 +26,6 @@ public:
     xy::StateID stateID() const override;
     
 private:
-    bool createNewSpriteSheet(const std::string& folder, const std::string& name);
+    bool createNewProject(const std::string& folder, const std::string& name);
     
 };

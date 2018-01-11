@@ -1,5 +1,5 @@
 //
-//  SplashState.cpp
+//  NewState
 //  xygine-editor
 //
 //  Created by Jonny Paton on 20/12/2017.
@@ -14,7 +14,7 @@
 #include <xyginext/core/App.hpp>
 
 #include <xyginext/ecs/components/Sprite.hpp>
-#include <xyginext/graphics/SpriteSheet.hpp>
+#include <xyginext/core/ConfigFile.hpp>
 
 #include "imgui.h"
 
@@ -28,6 +28,7 @@ xy::State(stateStack, context)
 }
 
 bool NewState::handleEvent(const sf::Event &evt) {
+    return false;
     
 }
 
@@ -43,7 +44,7 @@ void NewState::draw()
 {
     ImGui::SetNextWindowPosCenter();
     bool open(true);
-    ImGui::Begin("New", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("New Project", &open, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
     
     if (!open)
         requestStackPop();
@@ -52,7 +53,7 @@ void NewState::draw()
     
     const int bufSize = 1024;
     static char nameBuf[bufSize], pathBuf[bufSize];
-    ImGui::InputText("SpriteSheet name", nameBuf, bufSize);
+    ImGui::InputText("Project name", nameBuf, bufSize);
     
     ImGui::InputText("Path", pathBuf, bufSize);
     ImGui::SameLine();
@@ -67,14 +68,15 @@ void NewState::draw()
     {
         name = nameBuf;
             
-        createNewSpriteSheet(path, name);
-        requestStackClear();
-        requestStackPush(States::SPRITE_EDIT);
-        auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::NEW_WORKING_FILE);
-        *msg = path + "/" + name + ".spt"; // such magic
+        createNewProject(path, name);
+        
+        auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::OPEN_PROJECT);
+        *msg = path + "/" + name;
+        
+        requestStackPop();
     }
     
-    xy::Nim::end(); // New Sprite
+    xy::Nim::end(); // New Project
 }
 
 xy::StateID NewState::stateID() const
@@ -82,9 +84,9 @@ xy::StateID NewState::stateID() const
     return States::NEW;
 }
 
-bool NewState::createNewSpriteSheet(const std::string &folder, const std::string &name)
+bool NewState::createNewProject(const std::string &folder, const std::string &name)
 {
-    const auto extension = ".spt";
+    const auto extension = ".xyproj";
     if (xy::FileSystem::fileExists(folder + "/" + name + extension))
     {
         xy::Logger::log("Can't create sprite, file exists already");
@@ -95,8 +97,8 @@ bool NewState::createNewSpriteSheet(const std::string &folder, const std::string
         xy::Logger::log("Directory doesn't exist, creating...");
         xy::FileSystem::createDirectory(folder);
     }
-    xy::SpriteSheet sheet;
-    sheet.saveToFile(folder + "/" + name + extension);
+    xy::ConfigFile project;
+    project.save(folder + "/" + name + extension);
     return true;
 }
 
