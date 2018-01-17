@@ -63,7 +63,7 @@ endif()
 if(APPLE)
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SRC})
 else()
-    add_executable(${PROJECT_NAME}, ${PROJECT_SRC})
+    add_executable(${PROJECT_NAME} ${PROJECT_SRC})
 endif()
 
 # Linker settings

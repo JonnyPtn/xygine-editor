@@ -27,5 +27,8 @@ public:
     
 private:
     bool createNewProject(const std::string& folder, const std::string& name);
+    bool createNewSprite(const std::string& folder, const std::string& name);
+    
+    int m_fileTypeSelection;
     
 };

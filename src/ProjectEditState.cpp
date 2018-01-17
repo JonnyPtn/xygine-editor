@@ -25,6 +25,9 @@
 #include <xyginext/ecs/systems/SpriteAnimator.hpp>
 #include <xyginext/ecs/systems/CameraSystem.hpp>
 
+//err...
+#include <unistd.h>
+
 int ProjectEditState::m_instanceCount = 0;
 
 const sf::Vector2u PreviewSize(800,600);
@@ -93,7 +96,11 @@ void ProjectEditState::handleMessage(const xy::Message & msg)
     switch(msg.id)
     {
         case Messages::OPEN_PROJECT:
-            m_projectTabs[std::make_unique<Project>(msg.getData<std::string>())] = true;
+            auto file = msg.getData<std::string>();
+            
+            // change working directory to project folder
+            chdir(xy::FileSystem::getFilePath(file).c_str());
+            m_projectTabs[std::make_unique<Project>(file)] = true;
             break;
     }
     m_SpritePreviewScene.forwardMessage(msg);
@@ -123,13 +130,15 @@ void ProjectEditState::draw()
             
             if (!it->second)
             {
-                it = m_projectTabs.erase(it);
+               // it = m_projectTabs.erase(it);
             }
             else
             {
                 // If the tab for this project is selected, draw it
                 if (selected)
                 {
+                    // Update current project pointer
+                    m_currentProject = it->first.get();
                    
                     // 3 columns: project browser; file details, preview window
                     ImGui::Columns(3);
@@ -153,10 +162,15 @@ void ProjectEditState::draw()
                             }
                             else
                             {
-                                bool selected = dir == m_selectedFile;
+                                bool selected = dir == xy::FileSystem::getFileName(m_selectedFile);
                                 if (ImGui::Selectable(dir.c_str(), &selected))
                                 {
-                                    m_selectedFile = dir;
+                                    m_selectedFile = xy::FileSystem::getRelativePath( path + "/" + dir, m_currentProject->getFilePath());
+                                    
+                                    // Clear preview stuff if  present
+                                    m_selectedAnim.clear();
+                                    m_selectedSprite.clear();
+                                    m_spritePreviewEntity.getComponent<xy::Sprite>() = xy::Sprite();
                                 }
                             }
                         }
@@ -167,35 +181,16 @@ void ProjectEditState::draw()
                     // Properties column
                     ImGui::NextColumn();
                     
-                    auto sss = it->first->getSpriteSheets();
+                    auto& sss = it->first->getSpriteSheets();
                     if (sss.find(m_selectedFile) != sss.end())
                     {
-                        m_sheet = sss.find(m_selectedFile)->second;
+                        m_sheet = &sss.find(m_selectedFile)->second;
                         imDrawSpritesheet();
-                        
-                        // Preview Column
-                        m_previewBuffer.clear({128,128,128});
-                        m_previewBuffer.draw(m_SpritePreviewScene);
-                        m_previewBuffer.display();
-                        ImGui::NextColumn();
-                        ImGui::Image(m_previewBuffer);
-                        
-                        // If hovering over preview, and mouse is clicked, must be dragging
-                        if (ImGui::IsItemHovered())
-                        {
-                            if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-                            {
-                                m_draggingPreview = true;
-                            }
-                            else
-                            {
-                                m_draggingPreview = false;
-                            }
-                        }
-                        else
-                        {
-                            m_draggingPreview = false;
-                        }
+                    }
+                    
+                    else if(it->first->getTextures().find(m_selectedFile) != it->first->getTextures().end())
+                    {
+                        imDrawTexture();
                     }
                 }
                 it++;
@@ -209,14 +204,19 @@ void ProjectEditState::draw()
 
 void ProjectEditState::imDrawSpritesheet()
 {
+    auto root = xy::FileSystem::getFilePath(m_currentProject->getFilePath());
+    auto file = root + "/" + m_sheet->getTexturePath();
+    
+    auto& tex = m_textures.get(xy::FileSystem::getRelativePath(file,xy::FileSystem::getResourcePath().substr(0,xy::FileSystem::getResourcePath().find_last_of("/"))));
+    
     // Show the texture being used first
     if (ImGui::TreeNode("Texture"))
     {
-        auto texPath = m_sheet.getTexturePath();
+        auto texPath = m_sheet->getTexturePath();
         std::array<char, InputBufMax> texPathInput = {{0}};
         texPath.copy(texPathInput.begin(),texPath.size());
         ImGui::BeginChild("Texture Preview",{ImGui::GetContentRegionAvailWidth(),ImGui::GetContentRegionAvailWidth()});
-        auto& tex = m_textures.get(m_currentProject.lock()->getFilePath() + m_sheet.getTexturePath());
+        
         
         // Draw a highlight on the current texture rect
         if (m_spritePreviewEntity > 0)
@@ -224,11 +224,13 @@ void ProjectEditState::imDrawSpritesheet()
             auto rect = m_spritePreviewEntity.getComponent<xy::Sprite>().getTextureRect();
             ImGui::DrawRect(rect, sf::Color::Red);
         }
+        
+        // Show the texture preview
         ImGui::Image(tex);
         ImGui::EndChild();
         if (ImGui::InputText("Texture", texPathInput.data(), texPathInput.size()))
         {
-            m_sheet.setTexturePath(std::string(texPathInput.data()));
+            m_sheet->setTexturePath(std::string(texPathInput.data()));
             m_unsavedChanges = true;
         }
         ImGui::SameLine();
@@ -237,12 +239,12 @@ void ProjectEditState::imDrawSpritesheet()
             auto path = xy::FileSystem::openFileDialogue();
             if (!path.empty())
             {
-                // Maybe xygine should handle this?
-                m_sheet.setTexturePath(xy::FileSystem::getRelativePath(path,m_currentProject.lock()->getFilePath()));
+                m_sheet->setTexturePath(xy::FileSystem::getRelativePath(path,m_currentProject->getFilePath().substr(0,m_currentProject->getFilePath().find_last_of("/"))));
                 
                 m_spritePreviewEntity.getComponent<xy::Sprite>().setTexture(m_textures.get(path));
             }
             m_unsavedChanges = true;
+            
         }
         ImGui::TreePop();
     }
@@ -251,11 +253,11 @@ void ProjectEditState::imDrawSpritesheet()
     if (ImGui::TreeNode("Sprites"))
     {
         static std::string createString("Create new...");
-        if (!m_sheet.getTexturePath().empty())
+        if (!m_sheet->getTexturePath().empty())
         {
             if (ImGui::BeginCombo("Sprites", m_selectedSprite.c_str()))
             {
-                for (auto& spr : m_sheet.getSprites())
+                for (auto& spr : m_sheet->getSprites())
                 {
                     bool sprSelected(false);
                     ImGui::Selectable(spr.first.c_str(), &sprSelected);
@@ -272,7 +274,7 @@ void ProjectEditState::imDrawSpritesheet()
                 if (createSelected)
                 {
                     m_selectedSprite = createString;
-                    m_spritePreviewEntity.getComponent<xy::Sprite>() = m_sheet.getSprite(m_selectedSprite);
+                    m_spritePreviewEntity.getComponent<xy::Sprite>() = m_sheet->getSprite(m_selectedSprite);
                 }
                 
                 ImGui::EndCombo();
@@ -288,7 +290,7 @@ void ProjectEditState::imDrawSpritesheet()
             if (ImGui::InputText("New Sprite Name", buf, 1024, ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 // This just adds a default sprite
-                m_sheet.setSprite(buf, xy::Sprite());
+                m_sheet->setSprite(buf, xy::Sprite());
                 m_selectedSprite = buf;
             }
             ImGui::PopStyleColor();
@@ -300,20 +302,20 @@ void ProjectEditState::imDrawSpritesheet()
             
             // Texture rect
             auto rect = sf::IntRect(sprite.getTextureRect());
-            if (ImGui::InputInt4("Texture Rect",(int*)&rect, ImGuiInputTextFlags_EnterReturnsTrue))
+            if (ImGui::InputInt4("Texture Rect",(int*)&rect))
             {
                 // If we're modifying an anim, change the frames tex rect
                 if (m_selectedAnim != SelectAnAnimStr)
                 {
-                    auto& anim = sprite.getAnimations()[m_sheet.getAnimationIndex(m_selectedAnim, m_selectedSprite)];
+                    auto& anim = sprite.getAnimations()[m_sheet->getAnimationIndex(m_selectedAnim, m_selectedSprite)];
                     anim.frames[m_spritePreviewEntity.getComponent<xy::SpriteAnimation>().getFrameID()] = sf::FloatRect(rect);
                     sprite.setTextureRect(sf::FloatRect(rect));
-                    m_sheet.setSprite(m_selectedSprite, sprite);
+                    m_sheet->setSprite(m_selectedSprite, sprite);
                 }
                 else
                 {
                     sprite.setTextureRect(sf::FloatRect(rect));
-                    m_sheet.setSprite(m_selectedSprite, sprite);
+                    m_sheet->setSprite(m_selectedSprite, sprite);
                 }
                 m_unsavedChanges = true;
             }
@@ -323,13 +325,13 @@ void ProjectEditState::imDrawSpritesheet()
             if (ImGui::ColorEdit3("Colour", (float*)&col))
             {
                 sprite.setColour(col);
-                m_sheet.setSprite(m_selectedSprite, sprite);
+                m_sheet->setSprite(m_selectedSprite, sprite);
                 
             }
             // Delete Sprite
             if (xy::Nim::button("Delete Sprite"))
             {
-                m_sheet.removeSprite(m_selectedSprite);
+                m_sheet->removeSprite(m_selectedSprite);
                 m_selectedSprite = SelectASpriteStr;
                 m_selectedAnim = SelectAnAnimStr;
             }
@@ -351,13 +353,13 @@ void ProjectEditState::imDrawSpritesheet()
                             //hacky
                             if (m_spritePreviewEntity.hasComponent<xy::SpriteAnimation>())
                             {
-                                m_spritePreviewEntity.getComponent<xy::SpriteAnimation>().play( m_sheet.getAnimationIndex(m_selectedAnim, m_selectedSprite));
+                                m_spritePreviewEntity.getComponent<xy::SpriteAnimation>().play( m_sheet->getAnimationIndex(m_selectedAnim, m_selectedSprite));
                             }
                             else
                             {
                                 // Not sure why I have to do this
                                 m_SpritePreviewScene.getSystem<xy::SpriteAnimator>().addEntity(m_spritePreviewEntity);
-                                m_spritePreviewEntity.addComponent<xy::SpriteAnimation>().play( m_sheet.getAnimationIndex(m_selectedAnim, m_selectedSprite));;
+                                m_spritePreviewEntity.addComponent<xy::SpriteAnimation>().play( m_sheet->getAnimationIndex(m_selectedAnim, m_selectedSprite));;
                             }
                         }
                     }
@@ -367,21 +369,21 @@ void ProjectEditState::imDrawSpritesheet()
                 // Select an animation
                 if (m_selectedAnim != SelectAnAnimStr)
                 {
-                    auto index = m_sheet.getAnimationIndex(m_selectedAnim, m_selectedSprite);
+                    auto index = m_sheet->getAnimationIndex(m_selectedAnim, m_selectedSprite);
                     auto& anim = sprite.getAnimations()[index];
                     int fc = anim.frameCount;
                     if (ImGui::InputInt("Frames", &fc))
                     {
                         anim.frameCount = fc;
-                        m_sheet.setSprite(m_selectedSprite, sprite);
+                        m_sheet->setSprite(m_selectedSprite, sprite);
                     }
                     if (ImGui::InputFloat("Framerate", &anim.framerate))
                     {
-                        m_sheet.setSprite(m_selectedSprite, sprite);
+                        m_sheet->setSprite(m_selectedSprite, sprite);
                     }
                     if (ImGui::Checkbox("Looped", &anim.looped))
                     {
-                        m_sheet.setSprite(m_selectedSprite, sprite);
+                        m_sheet->setSprite(m_selectedSprite, sprite);
                     }
                     
                     // Timeline
@@ -405,7 +407,7 @@ void ProjectEditState::imDrawSpritesheet()
                     if (ImGui::Button(">"))
                     {
                         
-                        c.play(m_sheet.getAnimationIndex(m_selectedAnim, m_selectedSprite));
+                        c.play(m_sheet->getAnimationIndex(m_selectedAnim, m_selectedSprite));
                     }
                     
                     // Delete Sprite
@@ -426,10 +428,54 @@ void ProjectEditState::imDrawSpritesheet()
     {
         if (xy::Nim::button("Save"))
         {
-            m_sheet.saveToFile(m_currentProject.lock()->getFilePath() + m_currentProject.lock()->getName());
+            m_sheet->saveToFile(m_currentProject->getFilePath() + m_selectedFile);
             m_unsavedChanges = false;
         }
     }
+    
+    // Preview Column
+    m_previewBuffer.clear({128,128,128});
+    m_previewBuffer.draw(m_SpritePreviewScene);
+    m_previewBuffer.display();
+    ImGui::NextColumn();
+    ImGui::Image(m_previewBuffer);
+    
+    // If hovering over preview, and mouse is clicked, must be dragging
+    if (ImGui::IsItemHovered())
+    {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+        {
+            m_draggingPreview = true;
+        }
+        else
+        {
+            m_draggingPreview = false;
+        }
+    }
+    else
+    {
+        m_draggingPreview = false;
+    }
+}
+
+void ProjectEditState::imDrawParticleEmitter()
+{
+    
+}
+
+void ProjectEditState::imDrawTexture()
+{
+    // Just show the texture I suppose...
+    auto& tex = m_currentProject->getTextures()[m_selectedFile];
+    auto size = tex.getSize();
+    if (ImGui::InputInt2("Texture Size",(int*) &size))
+    {
+        //hmm...
+    }
+    
+    ImGui::NextColumn();
+    ImGui::Image(tex);
+    
 }
 
 xy::StateID ProjectEditState::stateID() const {

@@ -42,24 +42,29 @@ bool Project::loadFromFile(const std::string &filePath)
         {
             // Check the extension to get the type
             auto ext = xy::FileSystem::getFileExtension(path);
-            auto file = xy::FileSystem::getFileName(path);
+            auto file = xy::FileSystem::getRelativePath(path, m_path);
             if (ext == ".spt")
             {
                 // xygine sprite file
                 m_spriteFiles[file] = xy::SpriteSheet();
-                m_spriteFiles[file].loadFromFile(path, m_textures);
+               
+                // fiddle the path because bundle resource path on osx...
+                m_spriteFiles[file].loadFromFile(xy::FileSystem::getRelativePath(path,xy::FileSystem::getResourcePath().substr(0,xy::FileSystem::getResourcePath().find_last_of("/"))), m_textures);
+                
+                // Fixup the texture
+                m_textures.get(m_spriteFiles[file].getTexturePath()).loadFromFile(m_path + m_spriteFiles[file].getTexturePath());
             }
             else if (ext == ".xyp")
             {
                 // xygine particle file
                 m_particleFiles[file] = xy::ParticleEmitter();
-                m_particleFiles[file].settings.loadFromFile(path, m_textures);
+                m_particleFiles[file].settings.loadFromFile(file, m_textures);
             }
             else if (ext == ".png" || ext == ".jpg")
             {
                 // Texture
                 m_textureFiles[file] = sf::Texture();
-                m_textureFiles[file] = m_textures.get(path);
+                m_textureFiles[file].loadFromFile(path);
                 
             }
         }
@@ -86,5 +91,10 @@ std::string Project::getFilePath()
 std::map<std::string, xy::SpriteSheet>& Project::getSpriteSheets()
 {
     return m_spriteFiles;
+}
+
+std::map<std::string, sf::Texture>& Project::getTextures()
+{
+    return m_textureFiles;
 }
 

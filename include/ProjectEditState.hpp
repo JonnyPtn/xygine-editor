@@ -39,7 +39,7 @@ private:
     std::map<std::unique_ptr<Project>,bool> m_projectTabs;
     
     // Pointer for access to the current project (i.e. the currently selected project tab)
-    std::weak_ptr<Project>              m_currentProject;
+    Project*                            m_currentProject;
     
     // The names of currently selected resource. I'm sure there's a smarter way of doing this...
     std::string                         m_currentSpritesheet;
@@ -59,7 +59,7 @@ private:
     
     xy::Entity                          m_spritePreviewEntity;
     
-    xy::SpriteSheet                     m_sheet;
+    xy::SpriteSheet*                    m_sheet;
     xy::Entity                          m_camEntity;
     
     // Preview controls
