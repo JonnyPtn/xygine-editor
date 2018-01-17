@@ -6,4 +6,5 @@ set(PROJECT_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/NewState.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/ProjectEditState.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/Project.cpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra.cpp 
   PARENT_SCOPE)
