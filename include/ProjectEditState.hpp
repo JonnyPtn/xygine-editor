@@ -41,11 +41,6 @@ private:
     // Pointer for access to the current project (i.e. the currently selected project tab)
     Project*                            m_currentProject;
     
-    // The names of currently selected resource. I'm sure there's a smarter way of doing this...
-    std::string                         m_currentSpritesheet;
-    std::string                         m_currentParticleEmitter;
-    std::string                         m_currentTexture;
-    
     // When editing a spriteshee, this stores the currently selected sprite and animation
     std::string                         m_selectedSprite;
     std::string                         m_selectedAnim;
@@ -58,9 +53,13 @@ private:
     xy::Scene                           m_ParticlePreviewScene;
     
     xy::Entity                          m_spritePreviewEntity;
+    xy::Entity                          m_particlePreviewEntity;
     
     xy::SpriteSheet*                    m_sheet;
-    xy::Entity                          m_camEntity;
+    xy::ParticleEmitter*                m_emitter;
+    
+    xy::Entity                          m_SpriteCamEntity;
+    xy::Entity                          m_ParticleCamEntity;
     
     // Preview controls
     bool                                m_draggingPreview;

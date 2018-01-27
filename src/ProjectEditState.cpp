@@ -21,6 +21,8 @@
 #include <xyginext/ecs/components/Drawable.hpp>
 #include <xyginext/ecs/components/Camera.hpp>
 #include <xyginext/ecs/systems/RenderSystem.hpp>
+#include <xyginext/ecs/systems/ParticleSystem.hpp>
+#include <xyginext/ecs/systems/ParticleSystem.hpp>
 #include <xyginext/ecs/systems/SpriteSystem.hpp>
 #include <xyginext/ecs/systems/SpriteAnimator.hpp>
 #include <xyginext/ecs/systems/CameraSystem.hpp>
@@ -40,7 +42,6 @@ constexpr int InputBufMax = 1024;
 ProjectEditState::ProjectEditState(xy::StateStack& stateStack, Context context) :
 xy::State(stateStack, context),
 m_initialised(false),
-m_currentSpritesheet(SelectASpriteStr),
 m_unsavedChanges(false),
 m_SpritePreviewScene(context.appInstance.getMessageBus()),
 m_ParticlePreviewScene(context.appInstance.getMessageBus()),
@@ -56,18 +57,32 @@ m_selectedAnim(SelectAnAnimStr)
     m_SpritePreviewScene.addSystem<xy::RenderSystem>(mb);
     m_SpritePreviewScene.addSystem<xy::SpriteSystem>(mb);
     
+    m_ParticlePreviewScene.addSystem<xy::CameraSystem>(mb);
+    m_ParticlePreviewScene.addSystem<xy::RenderSystem>(mb);
+    m_ParticlePreviewScene.addSystem<xy::ParticleSystem>(mb);
+    
     // Add camera entity
-    m_camEntity = m_SpritePreviewScene.createEntity();
-    m_camEntity.addComponent<xy::Camera>().setView({static_cast<float>(PreviewSize.x), static_cast<float>(PreviewSize.y)});
-    m_camEntity.addComponent<xy::Transform>();
-    m_SpritePreviewScene.setActiveCamera(m_camEntity);
+    m_SpriteCamEntity = m_SpritePreviewScene.createEntity();
+    m_SpriteCamEntity.addComponent<xy::Camera>().setView({static_cast<float>(PreviewSize.x), static_cast<float>(PreviewSize.y)});
+    m_SpriteCamEntity.addComponent<xy::Transform>();
+    m_SpritePreviewScene.setActiveCamera(m_SpriteCamEntity);
+    
+    m_ParticleCamEntity = m_ParticlePreviewScene.createEntity();
+    m_ParticleCamEntity.addComponent<xy::Camera>().setView({static_cast<float>(PreviewSize.x), static_cast<float>(PreviewSize.y)});
+    m_ParticleCamEntity.addComponent<xy::Transform>();
+    m_ParticlePreviewScene.setActiveCamera(m_ParticleCamEntity);
     
     // and preview entity;
-    m_spritePreviewEntity = m_SpritePreviewScene.createEntity();
+    m_spritePreviewEntity = m_ParticlePreviewScene.createEntity();
     m_spritePreviewEntity.addComponent<xy::Sprite>();
     m_spritePreviewEntity.addComponent<xy::Transform>();
     m_spritePreviewEntity.addComponent<xy::Drawable>();
     m_spritePreviewEntity.addComponent<xy::SpriteAnimation>();
+    
+    m_particlePreviewEntity = m_ParticlePreviewScene.createEntity();
+    m_particlePreviewEntity.addComponent<xy::ParticleEmitter>();
+    m_particlePreviewEntity.addComponent<xy::Transform>();
+    m_particlePreviewEntity.addComponent<xy::Drawable>();
     
     m_previewBuffer.create(PreviewSize.x, PreviewSize.y);
 }
@@ -83,7 +98,8 @@ bool ProjectEditState::handleEvent(const sf::Event &evt)
             {
                 auto dx = evt.mouseMove.x - m_lastMousePos.x;
                 auto dy = evt.mouseMove.y - m_lastMousePos.y;
-                m_camEntity.getComponent<xy::Transform>().move(-dx,-dy);
+                m_SpriteCamEntity.getComponent<xy::Transform>().move(-dx,-dy);
+                m_particlePreviewEntity.getComponent<xy::Transform>().move(-dx,-dy);
             }
             m_lastMousePos = {evt.mouseMove.x, evt.mouseMove.y};
             break;
@@ -171,6 +187,12 @@ void ProjectEditState::draw()
                                     m_selectedAnim.clear();
                                     m_selectedSprite.clear();
                                     m_spritePreviewEntity.getComponent<xy::Sprite>() = xy::Sprite();
+                                    
+                                    // If it's a particle, load it
+                                    if (xy::FileSystem::getFileExtension(m_selectedFile) == ".xyp")
+                                    {
+                                    }
+                                    
                                 }
                             }
                         }
@@ -191,6 +213,11 @@ void ProjectEditState::draw()
                     else if(it->first->getTextures().find(m_selectedFile) != it->first->getTextures().end())
                     {
                         imDrawTexture();
+                    }
+                    else if(it->first->getParticleEmitters().find(m_selectedFile) != it->first->getParticleEmitters().end())
+                    {
+                        m_emitter = &it->first->getParticleEmitters().find(m_selectedFile)->second;
+                        imDrawParticleEmitter();
                     }
                 }
                 it++;
@@ -460,7 +487,41 @@ void ProjectEditState::imDrawSpritesheet()
 
 void ProjectEditState::imDrawParticleEmitter()
 {
+    auto& p = *m_emitter; // wtf am I doing
+    if (ImGui::Button("Start"))
+    {
+        m_particlePreviewEntity.getComponent<xy::ParticleEmitter>().start();
+    }
+    if (ImGui::Button("Stop"))
+    {
+        m_particlePreviewEntity.getComponent<xy::ParticleEmitter>().stop();
+    }
     
+    ImGui::InputFloat("Emit rate", &p.settings.emitRate);
+    int ec = p.settings.emitCount;
+    if (ImGui::InputInt("Emit count", &ec))
+        {
+            p.settings.emitCount = ec;
+        }
+    ImGui::InputFloat("Lifetime", &p.settings.lifetime);
+    ImGui::InputFloat("Lifetime Variance", &p.settings.lifetimeVariance);
+    ImGui::Checkbox("Random rotation", &p.settings.randomInitialRotation);
+    ImGui::InputInt("Release Count", &p.settings.releaseCount);
+    ImGui::InputFloat("Rotation speed", &p.settings.rotationSpeed );
+    ImGui::InputFloat("Scale modifier", &p.settings.scaleModifier);
+    ImGui::InputFloat("size", &p.settings.size);
+    ImGui::InputFloat("Spawn Radius", &p.settings.spawnRadius);
+    ImGui::InputFloat("Spread", &p.settings.spread);
+    
+    m_currentProject->getParticleEmitters().find(m_selectedFile)->second.settings = p.settings;
+    m_particlePreviewEntity.getComponent<xy::ParticleEmitter>().settings = p.settings;
+
+    // Preview Column
+    m_previewBuffer.clear({128,128,128});
+    m_previewBuffer.draw(m_ParticlePreviewScene);
+    m_previewBuffer.display();
+    ImGui::NextColumn();
+    ImGui::Image(m_previewBuffer);
 }
 
 void ProjectEditState::imDrawTexture()

@@ -38,7 +38,7 @@ bool Project::loadFromFile(const std::string &filePath)
             recurseFiles(path + "/" + dir);
         }
         
-        if (xy::FileSystem::listFiles(path).empty())
+        if (xy::FileSystem::listDirectories(path).empty())
         {
             // Check the extension to get the type
             auto ext = xy::FileSystem::getFileExtension(path);
@@ -58,7 +58,7 @@ bool Project::loadFromFile(const std::string &filePath)
             {
                 // xygine particle file
                 m_particleFiles[file] = xy::ParticleEmitter();
-                m_particleFiles[file].settings.loadFromFile(file, m_textures);
+                m_particleFiles[file].settings.loadFromFile(xy::FileSystem::getRelativePath(path,xy::FileSystem::getResourcePath().substr(0,xy::FileSystem::getResourcePath().find_last_of("/"))), m_textures);
             }
             else if (ext == ".png" || ext == ".jpg")
             {
@@ -97,4 +97,11 @@ std::map<std::string, sf::Texture>& Project::getTextures()
 {
     return m_textureFiles;
 }
+
+std::map<std::string, xy::ParticleEmitter>& Project::getParticleEmitters()
+{
+    return m_particleFiles;
+}
+
+
 
