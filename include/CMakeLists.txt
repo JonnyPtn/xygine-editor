@@ -7,4 +7,6 @@ set(PROJECT_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/ProjectEditState.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Messages.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Project.hpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_dock.hpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_dock.inl 
   PARENT_SCOPE)

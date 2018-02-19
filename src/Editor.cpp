@@ -38,7 +38,6 @@ source distribution.
 #include "NewState.hpp"
 #include "ProjectEditState.hpp"
 #include "Messages.hpp"
-#include "imgui_tabs.h"
 #include "imgui-SFML.h"
 
 //absolute paths to open documents
@@ -52,7 +51,7 @@ Editor::Editor()
 {
     xy::App::setApplicationName(applicationName);
     
-    m_stateStack.pushState(States::PROJECT_EDIT);
+  //  m_stateStack.pushState(States::PROJECT_EDIT);
 }
 
 //private
@@ -96,7 +95,13 @@ void Editor::handleEvent(const sf::Event& evt)
 }
 
 void Editor::handleMessage(const xy::Message& msg)
-{   
+{
+    // Listen for changes in active project, so we can restore correctly
+    if (msg.id == Messages::OPEN_PROJECT)
+    {
+        auto& path = msg.getData<std::string>();
+        currentProject = path;
+    }
     m_stateStack.handleMessage(msg);
 }
 
@@ -108,44 +113,46 @@ void Editor::updateApp(float dt)
 void Editor::draw()
 {
     // Menu bar
-    ImGui::BeginMainMenuBar();
-    
-    // File menu
-    if (ImGui::BeginMenu("File"))
+    if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::MenuItem("New", "ctrl+n"))  m_stateStack.pushState(States::NEW);
-        if (ImGui::MenuItem("Open", "ctrl+o")) m_stateStack.pushState(States::OPEN);
-        ImGui::Separator();
-        if (ImGui::MenuItem("Exit", "ctrl+x")) quit();
-        ImGui::EndMenu();
-    }
-    
-    // View menu
-    static bool showStyleEditor = false;
-    if (ImGui::BeginMenu("View"))
-    {
-        if (ImGui::BeginMenu("Windows"))
+        
+        // File menu
+        if (ImGui::BeginMenu("File"))
         {
-            ImGui::MenuItem("Editor Style", nullptr, &showStyleEditor);
+            if (ImGui::MenuItem("New", "ctrl+n"))  m_stateStack.pushState(States::NEW);
+            if (ImGui::MenuItem("Open", "ctrl+o")) m_stateStack.pushState(States::OPEN);
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit", "ctrl+x")) quit();
             ImGui::EndMenu();
         }
-        ImGui::EndMenu();
+        
+        // View menu
+        static bool showStyleEditor = false;
+        if (ImGui::BeginMenu("View"))
+        {
+            if (ImGui::BeginMenu("Windows"))
+            {
+                ImGui::MenuItem("Editor Style", nullptr, &showStyleEditor);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+        
+        if (showStyleEditor)
+        {
+            ImGui::Begin("Editor Style", &showStyleEditor);
+            ImGui::ShowStyleEditor();
+            ImGui::End();
+        }
+        
+        // Show fps in menu bar
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 60);
+        ImGui::Text(std::string("FPS: " + std::to_string(int(std::round(ImGui::GetIO().Framerate)))).c_str()); // wuzn't me
+        
+        m_stateStack.draw();
+        
+        ImGui::EndMainMenuBar();
     }
-    
-    if (showStyleEditor)
-    {
-        ImGui::Begin("Editor Style", &showStyleEditor);
-        ImGui::ShowStyleEditor();
-        ImGui::End();
-    }
-    
-    m_stateStack.draw();
-    
-    // Show fps in menu bar
-    ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 60);
-    ImGui::Text(std::string("FPS: " + std::to_string(int(std::round(ImGui::GetIO().Framerate)))).c_str()); // wuzn't me
-    
-    ImGui::EndMainMenuBar();
 }
 
 void Editor::initialise()

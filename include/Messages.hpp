@@ -12,4 +12,5 @@
 enum Messages
 {
     OPEN_PROJECT = xy::Message::Count,
+    ASSET_SELECTED,
 };

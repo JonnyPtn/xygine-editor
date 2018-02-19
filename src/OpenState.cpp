@@ -60,6 +60,8 @@ void OpenState::draw()
             
             auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::OPEN_PROJECT);
             *msg = path;
+            
+            requestStackPush(States::PROJECT_EDIT);
         }
     }
     

@@ -18,6 +18,16 @@
 
 #include <SFML/Graphics.hpp>
 
+// Asset types
+enum class AssetType
+{
+    Sprite,
+    TileMap,
+    ParticleEmitter,
+    Texture,
+    Sound
+};
+
 class ProjectEditState : public xy::State
 {
 public:
@@ -35,15 +45,12 @@ public:
     
 private:
     
-    // Project tabs, bool for selected item
-    std::map<std::unique_ptr<Project>,bool> m_projectTabs;
+    void    drawAssetBrowser();
     
-    // Pointer for access to the current project (i.e. the currently selected project tab)
-    Project*                            m_currentProject;
+    Project m_currentProject;
     
-    // When editing a spriteshee, this stores the currently selected sprite and animation
-    std::string                         m_selectedSprite;
-    std::string                         m_selectedAnim;
+    std::string m_selectedAsset;
+    AssetType   m_selectedAssetType;
     
     void                                imDrawSpritesheet();
     void                                imDrawParticleEmitter();
@@ -71,9 +78,9 @@ private:
     // The file currently selected by the project browser
     std::string m_selectedFile;
     
-    int        m_id;
-    static int m_instanceCount;
-    bool       m_initialised;
+    int         m_id;
+    static int  m_instanceCount;
+    bool        m_initialised;
     sf::IntRect m_tabRect;
     bool        m_unsavedChanges;
 };
