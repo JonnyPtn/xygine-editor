@@ -15,18 +15,9 @@
 #include <xyginext/ecs/Scene.hpp>
 
 #include "Project.hpp"
+#include "Asset.hpp"
 
 #include <SFML/Graphics.hpp>
-
-// Asset types
-enum class AssetType
-{
-    Sprite,
-    TileMap,
-    ParticleEmitter,
-    Texture,
-    Sound
-};
 
 class ProjectEditState : public xy::State
 {
@@ -45,42 +36,27 @@ public:
     
 private:
     
+    // effectively a listing of everything in the project "assets" folder
     void    drawAssetBrowser();
     
+    // Current project
     Project m_currentProject;
     
-    std::string m_selectedAsset;
-    AssetType   m_selectedAssetType;
+    // The the selected asset, and it's type
+    std::unique_ptr<Asset>  m_selectedAsset;
+    AssetType               m_selectedAssetType;
     
-    void                                imDrawSpritesheet();
-    void                                imDrawParticleEmitter();
-    void                                imDrawTexture();
-    
-    xy::Scene                           m_SpritePreviewScene;
-    xy::Scene                           m_ParticlePreviewScene;
-    
-    xy::Entity                          m_spritePreviewEntity;
-    xy::Entity                          m_particlePreviewEntity;
-    
-    xy::SpriteSheet*                    m_sheet;
-    xy::ParticleEmitter*                m_emitter;
-    
-    xy::Entity                          m_SpriteCamEntity;
-    xy::Entity                          m_ParticleCamEntity;
+    // A preview scene, shown in a separate window
+    xy::Scene               m_previewScene;
+    sf::RenderWindow        m_previewWindow;
+    xy::Entity              m_previewCamera;
     
     // Preview controls
     bool                                m_draggingPreview;
     sf::Vector2i                        m_lastMousePos;
     
-    xy::TextureResource                 m_textures;
-    sf::RenderTexture                   m_previewBuffer;
-    
     // The file currently selected by the project browser
     std::string m_selectedFile;
     
-    int         m_id;
-    static int  m_instanceCount;
-    bool        m_initialised;
-    sf::IntRect m_tabRect;
     bool        m_unsavedChanges;
 };

@@ -7,4 +7,5 @@ set(PROJECT_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/ProjectEditState.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/Project.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra.cpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/SpriteAsset.cpp 
   PARENT_SCOPE)

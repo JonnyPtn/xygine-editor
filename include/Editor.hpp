@@ -33,6 +33,7 @@ source distribution.
 #include <memory>
 #include "imgui.h"
 #include "Project.hpp"
+#include <vector>
 
 class Editor final : public xy::App
 {
@@ -41,6 +42,9 @@ public:
     ~Editor() = default;
     Editor(const Editor&) = delete;
     Editor& operator = (const Editor&) = delete;
+    
+    // Store a setting
+    static void storeSetting(const std::string& id, const std::string& value);
 
 private:
 
@@ -56,7 +60,8 @@ private:
     void initialise() override;
     void finalise() override;
     
-    std::string openProjectPath;
+    xy::ConfigFile m_editorConfig;
+    std::string m_editorConfigPath;
 };
 
 

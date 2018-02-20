@@ -39,11 +39,9 @@ source distribution.
 #include "ProjectEditState.hpp"
 #include "Messages.hpp"
 #include "imgui-SFML.h"
-
-//absolute paths to open documents
-std::string currentProject;
     
 const std::string applicationName = "xygine Editor";
+
 
 Editor::Editor()
     : xy::App   (/*sf::ContextSettings(0, 0, 0, 3, 2, sf::ContextSettings::Core)*/),
@@ -51,7 +49,26 @@ Editor::Editor()
 {
     xy::App::setApplicationName(applicationName);
     
-  //  m_stateStack.pushState(States::PROJECT_EDIT);
+    // Open our config file
+    m_editorConfigPath = xy::FileSystem::getConfigDirectory(applicationName) + "EditorSettings.cfg";
+    if (m_editorConfig.loadFromFile(m_editorConfigPath))
+    {
+        // settings exist, load previous project
+        for (auto& p : m_editorConfig.getProperties())
+        {
+            if (p.getName() == "PreviousProject")
+            {
+                auto msg = getMessageBus().post<std::string>(Messages::OPEN_PROJECT);
+                *msg = p.getValue<std::string>();
+                m_stateStack.pushState(States::PROJECT_EDIT);
+            }
+        }
+    }
+    else
+    {
+        // config not found - create it
+        m_editorConfig.save(m_editorConfigPath);
+    }
 }
 
 //private
@@ -100,7 +117,14 @@ void Editor::handleMessage(const xy::Message& msg)
     if (msg.id == Messages::OPEN_PROJECT)
     {
         auto& path = msg.getData<std::string>();
-        currentProject = path;
+        
+        // Store in our config file
+        xy::ConfigProperty* p;
+        if (p = m_editorConfig.findProperty("PreviousProject"))
+            p->setValue(path);
+        else
+            m_editorConfig.addProperty("PreviousProject", path);
+        m_editorConfig.save(m_editorConfigPath);
     }
     m_stateStack.handleMessage(msg);
 }
