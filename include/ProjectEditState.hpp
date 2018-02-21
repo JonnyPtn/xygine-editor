@@ -39,6 +39,7 @@ private:
     // effectively a listing of everything in the project "assets" folder
     void    drawAssetBrowser();
     
+    
     // Current project
     Project m_currentProject;
     

@@ -40,7 +40,8 @@ xy::State(stateStack, context),
 m_unsavedChanges(false),
 m_previewScene(context.appInstance.getMessageBus()),
 m_draggingPreview(false),
-m_currentProject("")
+m_currentProject(""),
+m_selectedFile("")
 {
     auto& mb = context.appInstance.getMessageBus();
     
@@ -91,20 +92,20 @@ void ProjectEditState::handleMessage(const xy::Message & msg)
             // Check the type, based on extension. I know this sucks.
             auto file = msg.getData<std::string>();
             
-            if (file.find(".spt"))
+            if (file.find(".spt") != std::string::npos)
             {
                 m_selectedAssetType = AssetType::Sprite;
                 m_selectedAsset.reset(new SpriteAsset(file, m_previewScene));
             }
-            else if (file.find(".tmx"))
+            else if (file.find(".tmx") != std::string::npos)
                 m_selectedAssetType = AssetType::TileMap;
-            else if (file.find(".xyp"))
+            else if (file.find(".xyp") != std::string::npos)
                 m_selectedAssetType = AssetType::ParticleEmitter;
-            else if (file.find(".wav"))
+            else if (file.find(".wav") != std::string::npos)
                 m_selectedAssetType = AssetType::Sound;
-            else if (file.find(".png"))
+            else if (file.find(".png") != std::string::npos)
                 m_selectedAssetType = AssetType::Texture;
-            else if (file.find(".jpg"))
+            else if (file.find(".jpg") != std::string::npos)
                 m_selectedAssetType = AssetType::Texture;
             
             break;
@@ -115,12 +116,13 @@ void ProjectEditState::handleMessage(const xy::Message & msg)
 
 bool ProjectEditState::update(float dt)
 {
-    // First check the preview window for events
+    // First check the preview window for events. This code needs a better home...
     sf::Event ev;
     while(m_previewWindow.pollEvent(ev))
     {
         switch(ev.type)
         {
+            // Click and drag
             case sf::Event::MouseButtonPressed:
             {
                 m_draggingPreview = true;
@@ -136,12 +138,32 @@ bool ProjectEditState::update(float dt)
                 // If we're dragging preview, translate camera appropriately
                 if (m_draggingPreview)
                 {
-                    auto dx = ev.mouseMove.x - m_lastMousePos.x;
-                    auto dy = ev.mouseMove.y - m_lastMousePos.y;
+                    float dx = ev.mouseMove.x - m_lastMousePos.x;
+                    float dy = ev.mouseMove.y - m_lastMousePos.y;
+                    
+                    // Calculate the current zoom, so we can translate correctly
+                    sf::Vector2f windowSize = sf::Vector2f(m_previewWindow.getSize());
+                    sf::Vector2f camSize = m_previewCamera.getComponent<xy::Camera>().getView();
+                    dx *= camSize.x / windowSize.x;
+                    dy *= camSize.y / windowSize.y;
                     m_previewCamera.getComponent<xy::Transform>().move(-dx,-dy);
                     auto pos = m_previewCamera.getComponent<xy::Transform>().getPosition();
                 }
                 m_lastMousePos = {ev.mouseMove.x, ev.mouseMove.y};
+                break;
+            }
+                
+            // Scroll to zoom
+            case sf::Event::MouseWheelScrolled:
+            {
+                if (ev.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
+                {
+                    // some botched zoom values
+                    const float zoomStep = 0.1f;
+                    auto zoom = 1.f + (zoomStep * ev.mouseWheelScroll.delta);
+                    if (zoom)
+                        m_previewCamera.getComponent<xy::Camera>().zoom(zoom);
+                }
                 break;
             }
         }
@@ -198,7 +220,7 @@ void ProjectEditState::drawAssetBrowser()
             // List files, broadcast message if selected
             for (auto& file : xy::FileSystem::listFiles(path))
             {
-                auto selected = m_selectedFile == file;
+                auto selected = xy::FileSystem::getFileName(m_selectedFile) == file;
                 if (ImGui::Selectable(file.c_str(), &selected))
                 {
                     auto msg = getContext().appInstance.getMessageBus().post<std::string>(Messages::ASSET_SELECTED);

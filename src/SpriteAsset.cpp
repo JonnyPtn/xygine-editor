@@ -47,15 +47,7 @@ m_previewScene(previewScene)
     texPath = xy::FileSystem::getRelativePath(texPath, resPath);
     m_textures.get(texPath);
     
-    // Create the preview buffer
-    m_previewBuffer.create(PreviewSize.x, PreviewSize.y);
-
-    // And the required entities
-    m_previewCamera = m_previewScene.createEntity();
-    m_previewCamera.addComponent<xy::Camera>().setView({static_cast<float>(PreviewSize.x), static_cast<float>(PreviewSize.y)});
-    m_previewCamera.addComponent<xy::Transform>();
-   // m_previewScene.setActiveCamera(m_previewCamera);
-    
+    // Our entity for the preview
     m_previewSprite = m_previewScene.createEntity();
     m_previewSprite.addComponent<xy::Sprite>();
     m_previewSprite.addComponent<xy::Transform>();
