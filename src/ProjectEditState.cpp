@@ -58,45 +58,18 @@ m_currentProject("")
     m_previewScene.setActiveCamera(m_previewCamera);
     
     // Create the preview window
-    m_previewWindow.create(sf::VideoMode(PreviewSize.x,PreviewSize.y), "Preview");
+    m_previewWindow.create(context.appInstance.getVideoSettings().VideoMode, "Preview");
+    
+    // Update the camera view, otherwise everything is warped
+    m_previewCamera.getComponent<xy::Camera>().setView(sf::Vector2f(m_previewWindow.getSize()));
 }
 
 bool ProjectEditState::handleEvent(const sf::Event &evt)
 {
-    // First check the preview window for events
-    sf::Event ev;
-    while(m_previewWindow.pollEvent(ev))
-    {
-        switch(ev.type)
-        {
-            case sf::Event::MouseButtonPressed:
-            {
-                m_draggingPreview = true;
-                break;
-            }
-            case sf::Event::MouseButtonReleased:
-            {
-                m_draggingPreview = false;
-                break;
-            }
-            case sf::Event::MouseMoved:
-            {
-                // If we're dragging preview, translate camera appropriately
-                if (m_draggingPreview)
-                {
-                    auto dx = ev.mouseMove.x - m_lastMousePos.x;
-                    auto dy = ev.mouseMove.y - m_lastMousePos.y;
-                    m_previewCamera.getComponent<xy::Transform>().move(-dx,-dy);
-                }
-                m_lastMousePos = {ev.mouseMove.x, ev.mouseMove.y};
-                break;
-            }
-        }
-    }
-    
     switch (evt.type)
     {
     }
+    m_previewScene.forwardEvent(evt);
 }
 
 void ProjectEditState::handleMessage(const xy::Message & msg)
@@ -142,6 +115,38 @@ void ProjectEditState::handleMessage(const xy::Message & msg)
 
 bool ProjectEditState::update(float dt)
 {
+    // First check the preview window for events
+    sf::Event ev;
+    while(m_previewWindow.pollEvent(ev))
+    {
+        switch(ev.type)
+        {
+            case sf::Event::MouseButtonPressed:
+            {
+                m_draggingPreview = true;
+                break;
+            }
+            case sf::Event::MouseButtonReleased:
+            {
+                m_draggingPreview = false;
+                break;
+            }
+            case sf::Event::MouseMoved:
+            {
+                // If we're dragging preview, translate camera appropriately
+                if (m_draggingPreview)
+                {
+                    auto dx = ev.mouseMove.x - m_lastMousePos.x;
+                    auto dy = ev.mouseMove.y - m_lastMousePos.y;
+                    m_previewCamera.getComponent<xy::Transform>().move(-dx,-dy);
+                    auto pos = m_previewCamera.getComponent<xy::Transform>().getPosition();
+                }
+                m_lastMousePos = {ev.mouseMove.x, ev.mouseMove.y};
+                break;
+            }
+        }
+    }
+    
     m_previewScene.update(dt);
 }
 

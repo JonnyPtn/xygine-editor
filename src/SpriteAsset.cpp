@@ -54,7 +54,7 @@ m_previewScene(previewScene)
     m_previewCamera = m_previewScene.createEntity();
     m_previewCamera.addComponent<xy::Camera>().setView({static_cast<float>(PreviewSize.x), static_cast<float>(PreviewSize.y)});
     m_previewCamera.addComponent<xy::Transform>();
-    m_previewScene.setActiveCamera(m_previewCamera);
+   // m_previewScene.setActiveCamera(m_previewCamera);
     
     m_previewSprite = m_previewScene.createEntity();
     m_previewSprite.addComponent<xy::Sprite>();
