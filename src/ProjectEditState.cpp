@@ -59,18 +59,62 @@ m_selectedFile("")
     m_previewScene.setActiveCamera(m_previewCamera);
     
     // Create the preview window
-    m_previewWindow.create(context.appInstance.getVideoSettings().VideoMode, "Preview");
+    m_previewBuffer.create(PreviewSize.x,PreviewSize.y);
     
     // Update the camera view, otherwise everything is warped
-    m_previewCamera.getComponent<xy::Camera>().setView(sf::Vector2f(m_previewWindow.getSize()));
+    m_previewCamera.getComponent<xy::Camera>().setView(sf::Vector2f(m_previewBuffer.getSize()));
 }
 
-bool ProjectEditState::handleEvent(const sf::Event &evt)
+bool ProjectEditState::handleEvent(const sf::Event &ev)
 {
-    switch (evt.type)
+    switch (ev.type)
     {
+                // Click and drag
+        case sf::Event::MouseButtonPressed:
+        {
+            m_draggingPreview = true;
+            break;
+        }
+        case sf::Event::MouseButtonReleased:
+        {
+            m_draggingPreview = false;
+            break;
+        }
+        case sf::Event::MouseMoved:
+        {
+            // If we're dragging preview, translate camera appropriately
+            if (m_draggingPreview)
+            {
+                float dx = ev.mouseMove.x - m_lastMousePos.x;
+                float dy = ev.mouseMove.y - m_lastMousePos.y;
+                
+                // Calculate the current zoom, so we can translate correctly
+                sf::Vector2f windowSize = sf::Vector2f(m_previewBuffer.getSize());
+                sf::Vector2f camSize = m_previewCamera.getComponent<xy::Camera>().getView();
+                dx *= camSize.x / windowSize.x;
+                dy *= camSize.y / windowSize.y;
+                m_previewCamera.getComponent<xy::Transform>().move(-dx,-dy);
+                auto pos = m_previewCamera.getComponent<xy::Transform>().getPosition();
+            }
+            m_lastMousePos = {ev.mouseMove.x, ev.mouseMove.y};
+            break;
+        }
+            
+        // Scroll to zoom
+        case sf::Event::MouseWheelScrolled:
+        {
+            if (ev.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
+            {
+                // some botched zoom values
+                const float zoomStep = 0.1f;
+                auto zoom = 1.f + (zoomStep * ev.mouseWheelScroll.delta);
+                if (zoom)
+                    m_previewCamera.getComponent<xy::Camera>().zoom(zoom);
+            }
+            break;
+        }
     }
-    m_previewScene.forwardEvent(evt);
+    m_previewScene.forwardEvent(ev);
 }
 
 void ProjectEditState::handleMessage(const xy::Message & msg)
@@ -116,59 +160,6 @@ void ProjectEditState::handleMessage(const xy::Message & msg)
 
 bool ProjectEditState::update(float dt)
 {
-    // First check the preview window for events. This code needs a better home...
-    sf::Event ev;
-    while(m_previewWindow.pollEvent(ev))
-    {
-        switch(ev.type)
-        {
-            // Click and drag
-            case sf::Event::MouseButtonPressed:
-            {
-                m_draggingPreview = true;
-                break;
-            }
-            case sf::Event::MouseButtonReleased:
-            {
-                m_draggingPreview = false;
-                break;
-            }
-            case sf::Event::MouseMoved:
-            {
-                // If we're dragging preview, translate camera appropriately
-                if (m_draggingPreview)
-                {
-                    float dx = ev.mouseMove.x - m_lastMousePos.x;
-                    float dy = ev.mouseMove.y - m_lastMousePos.y;
-                    
-                    // Calculate the current zoom, so we can translate correctly
-                    sf::Vector2f windowSize = sf::Vector2f(m_previewWindow.getSize());
-                    sf::Vector2f camSize = m_previewCamera.getComponent<xy::Camera>().getView();
-                    dx *= camSize.x / windowSize.x;
-                    dy *= camSize.y / windowSize.y;
-                    m_previewCamera.getComponent<xy::Transform>().move(-dx,-dy);
-                    auto pos = m_previewCamera.getComponent<xy::Transform>().getPosition();
-                }
-                m_lastMousePos = {ev.mouseMove.x, ev.mouseMove.y};
-                break;
-            }
-                
-            // Scroll to zoom
-            case sf::Event::MouseWheelScrolled:
-            {
-                if (ev.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
-                {
-                    // some botched zoom values
-                    const float zoomStep = 0.1f;
-                    auto zoom = 1.f + (zoomStep * ev.mouseWheelScroll.delta);
-                    if (zoom)
-                        m_previewCamera.getComponent<xy::Camera>().zoom(zoom);
-                }
-                break;
-            }
-        }
-    }
-    
     m_previewScene.update(dt);
 }
 
@@ -190,15 +181,13 @@ void ProjectEditState::draw()
     if (m_selectedAsset)
     {
         m_selectedAsset->drawProperties();
+        
+        // Draw the preview window
+        drawPreview();
     }
     
     ImGui::EndDockspace();
     ImGui::End();
-    
-    // Draw the preview window
-    m_previewWindow.clear();
-    m_previewWindow.draw(m_previewScene);
-    m_previewWindow.display();
 }
 
 void ProjectEditState::drawAssetBrowser()
@@ -231,6 +220,17 @@ void ProjectEditState::drawAssetBrowser()
         
         imFileTreeRecurse("assets");
     }
+    ImGui::EndDock();
+}
+
+void ProjectEditState::drawPreview()
+{
+    m_previewBuffer.clear();
+    m_previewBuffer.draw(m_previewScene);
+    m_previewBuffer.display();
+    
+    if (ImGui::BeginDock("Preview Scene"))
+        ImGui::Image(m_previewBuffer);
     ImGui::EndDock();
 }
 

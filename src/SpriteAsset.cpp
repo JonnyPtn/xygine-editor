@@ -57,29 +57,34 @@ m_previewScene(previewScene)
 
 void SpriteAsset::drawProperties()
 {
-    if (ImGui::BeginDock("Spritesheet Properties"))
+    // Path to the texture
+    const size_t bufSize = 1024;
+    std::array<char, bufSize> texturePath = {{0}};
+    m_sheet.getTexturePath().copy(texturePath.begin(), m_sheet.getTexturePath().length());
+    auto resPath = xy::FileSystem::getResourcePath();
+    resPath = resPath.substr(0,resPath.find_last_of("/"));
+    
+    // Texture preview, along with texture rect indicator
+    std::array<char,bufSize> buf = {{0}};
+    getcwd(buf.data(), bufSize);
+    auto texPath = std::string(buf.data()) + "/" + m_sheet.getTexturePath();
+    texPath = xy::FileSystem::getRelativePath(texPath, resPath);
+    auto& tex = m_textures.get(texPath);
+    sf::IntRect texRect = sf::IntRect(m_previewSprite.getComponent<xy::Sprite>().getTextureRect());
+    
+    // Separate dock window for the texture
+    if (ImGui::BeginDock("Texture preview"))
     {
-        
-        // Path to the texture
-        const size_t bufSize = 1024;
-        std::array<char, bufSize> texturePath = {{0}};
-        m_sheet.getTexturePath().copy(texturePath.begin(), m_sheet.getTexturePath().length());
         ImGui::InputText("Texture", texturePath.data(), bufSize);
-        auto resPath = xy::FileSystem::getResourcePath();
-        resPath = resPath.substr(0,resPath.find_last_of("/"));
-        
-        // Texture preview, along with texture rect indicator
-        std::array<char,bufSize> buf = {{0}};
-        getcwd(buf.data(), bufSize);
-        auto texPath = std::string(buf.data()) + "/" + m_sheet.getTexturePath();
-        texPath = xy::FileSystem::getRelativePath(texPath, resPath);
-        auto& tex = m_textures.get(texPath);
-        sf::IntRect texRect = sf::IntRect(m_previewSprite.getComponent<xy::Sprite>().getTextureRect());
-        ImGui::BeginChild("Texture Preview",{200,200});
+       // ImGui::BeginChild("Texture Preview",{200,200}, ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::DrawRect(sf::FloatRect(texRect), sf::Color::Red);
         ImGui::Image(tex);
-        ImGui::EndChild();
-        
+        //ImGui::EndChild();
+    }
+    ImGui::EndDock();
+    
+    if (ImGui::BeginDock("Spritesheet Properties"))
+    {
         // Combo list of sprites in spritesheet
         if (ImGui::BeginCombo("Sprites", m_selectedSpriteName.length() ? m_selectedSpriteName.c_str() : "Select a sprite"))
         {

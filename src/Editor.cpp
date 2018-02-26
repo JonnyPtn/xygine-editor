@@ -39,6 +39,7 @@ source distribution.
 #include "ProjectEditState.hpp"
 #include "Messages.hpp"
 #include "imgui-SFML.h"
+#include "imgui_dock.hpp"
     
 const std::string applicationName = "xygine Editor";
 
@@ -69,6 +70,9 @@ Editor::Editor()
         // config not found - create it
         m_editorConfig.save(m_editorConfigPath);
     }
+    
+    getRenderWindow()->setVerticalSyncEnabled(false);
+    getRenderWindow()->setFramerateLimit(60);
 }
 
 //private
@@ -105,6 +109,7 @@ void Editor::handleEvent(const sf::Event& evt)
         break;
             
         case sf::Event::Closed:
+            ImGui::ShutdownDock();
             quit();
             break;
     }

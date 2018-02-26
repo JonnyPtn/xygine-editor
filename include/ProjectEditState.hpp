@@ -39,6 +39,8 @@ private:
     // effectively a listing of everything in the project "assets" folder
     void    drawAssetBrowser();
     
+    // Preview scene window
+    void    drawPreview();
     
     // Current project
     Project m_currentProject;
@@ -49,7 +51,7 @@ private:
     
     // A preview scene, shown in a separate window
     xy::Scene               m_previewScene;
-    sf::RenderWindow        m_previewWindow;
+    sf::RenderTexture       m_previewBuffer;
     xy::Entity              m_previewCamera;
     
     // Preview controls
