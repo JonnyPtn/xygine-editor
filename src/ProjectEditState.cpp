@@ -183,7 +183,7 @@ void ProjectEditState::draw()
     // the height of the menu bar
     ImGui::SetNextWindowSize({static_cast<float>(windowSize.x) ,windowSize.y - menuBarHeight});
     ImGui::SetNextWindowPos({0,menuBarHeight});
-    ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_NoTitleBar);
+    ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
     ImGui::BeginDockspace();
     
     drawAssetBrowser();

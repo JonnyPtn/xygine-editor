@@ -11,5 +11,5 @@ set(PROJECT_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/TextureAsset.hpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/ParticleAsset.hpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/Asset.hpp 
-  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_dock.hpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_dock.hpp
   PARENT_SCOPE)

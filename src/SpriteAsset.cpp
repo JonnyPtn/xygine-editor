@@ -29,7 +29,8 @@ const sf::Vector2f PreviewSize(400,400);
 
 SpriteAsset::SpriteAsset(const std::string& path, xy::Scene& previewScene, xy::TextureResource& textures) :
 Asset(),
-m_assetPath(path)
+m_assetPath(path),
+m_renamingSprite(false)
 {
     // Because xy::Spritesheet automatically prepends the bundle path, we need to go relative to that
     auto resPath = xy::FileSystem::getResourcePath();
@@ -91,10 +92,36 @@ void SpriteAsset::drawProperties()
                     m_selectedSpriteName = spr.first;
                     m_previewSprite.getComponent<xy::Sprite>() = spr.second;
                     m_previewSprite.getComponent<xy::Sprite>().setTexture(*m_texture);
-                   // m_previewSprite.getComponent<xy::Sprite>().setTextureRect(spr.second.getTextureRect());
+                    m_previewSprite.getComponent<xy::Sprite>().setTextureRect(spr.second.getTextureRect());
                 }
             }
             ImGui::EndCombo();
+        }
+        
+        // Button to add a new sprite
+        ImGui::SameLine();
+        if (ImGui::Button("New"))
+        {
+            m_sheet.setSprite("New Sprite", xy::Sprite());
+        }
+        
+        // Rename sprite
+        ImGui::SameLine();
+        if (ImGui::Button("Rename"))
+        {
+            m_renamingSprite = true;
+        }
+        
+        if (m_renamingSprite)
+        {
+            std::array<char, bufSize> buf = {{0}};
+            m_selectedSpriteName.copy(buf.data(), m_selectedSpriteName.length());
+            if (ImGui::InputText("New name", buf.data(), bufSize, ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                m_selectedSpriteName = std::string(buf.data());
+                m_sheet.setSprite(m_selectedSpriteName, m_previewSprite.getComponent<xy::Sprite>());
+                m_renamingSprite = false;
+            }
         }
         
         // Sprite texture rect

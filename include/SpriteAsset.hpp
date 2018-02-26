@@ -28,4 +28,5 @@ private:
     std::string         m_selectedAnimName;
     
     xy::Entity          m_previewSprite;
+    bool                m_renamingSprite;
 };
