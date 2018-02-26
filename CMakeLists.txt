@@ -61,7 +61,7 @@ endif()
 
 # Create the actual executable (PROJECT_SRC variable is set inside previous steps)
 if(APPLE)
-    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SRC})
+    add_executable(${PROJECT_NAME}  MACOSX_BUNDLE ${PROJECT_SRC})
 else()
     add_executable(${PROJECT_NAME} ${PROJECT_SRC})
 endif()

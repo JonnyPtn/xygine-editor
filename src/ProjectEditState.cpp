@@ -29,6 +29,8 @@
 #include <xyginext/ecs/systems/CameraSystem.hpp>
 
 #include "SpriteAsset.hpp"
+#include "TextureAsset.hpp"
+#include "ParticleAsset.hpp"
 
 //err...
 #include <unistd.h>
@@ -139,16 +141,23 @@ void ProjectEditState::handleMessage(const xy::Message & msg)
             if (file.find(".spt") != std::string::npos)
             {
                 m_selectedAssetType = AssetType::Sprite;
-                m_selectedAsset.reset(new SpriteAsset(file, m_previewScene));
+                m_selectedAsset.reset(new SpriteAsset(file, m_previewScene, m_textures));
             }
             else if (file.find(".tmx") != std::string::npos)
                 m_selectedAssetType = AssetType::TileMap;
             else if (file.find(".xyp") != std::string::npos)
+            {
                 m_selectedAssetType = AssetType::ParticleEmitter;
+                m_selectedAsset.reset(new ParticleAsset(file, m_previewScene, m_textures));
+            }
             else if (file.find(".wav") != std::string::npos)
                 m_selectedAssetType = AssetType::Sound;
             else if (file.find(".png") != std::string::npos)
+            {
                 m_selectedAssetType = AssetType::Texture;
+                m_selectedAsset.reset(new TextureAsset(file, m_textures));
+            }
+            
             else if (file.find(".jpg") != std::string::npos)
                 m_selectedAssetType = AssetType::Texture;
             

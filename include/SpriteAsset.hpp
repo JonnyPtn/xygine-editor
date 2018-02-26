@@ -16,20 +16,16 @@
 class SpriteAsset : public Asset
 {
 public:
-    SpriteAsset(const std::string& assetPath, xy::Scene& previewScene);
+    SpriteAsset(const std::string& assetPath, xy::Scene& previewScene, xy::TextureResource& textures);
     void drawProperties() override;
-    void drawPreview() override;
     AssetType type() const override {return AssetType::Sprite;}
     
 private:
     xy::SpriteSheet     m_sheet;
-    xy::TextureResource m_textures;
+    sf::Texture*        m_texture;
     std::string         m_assetPath;
     std::string         m_selectedSpriteName;
     std::string         m_selectedAnimName;
     
-    sf::RenderTexture   m_previewBuffer;
-    xy::Scene&          m_previewScene;
-    xy::Entity          m_previewCamera;
     xy::Entity          m_previewSprite;
 };

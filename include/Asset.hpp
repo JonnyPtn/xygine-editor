@@ -23,7 +23,6 @@ class Asset
 {
 public:
     virtual void drawProperties() = 0;
-    virtual void drawPreview() = 0;
     
     virtual AssetType type() const = 0;
 };

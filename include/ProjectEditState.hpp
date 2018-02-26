@@ -62,4 +62,6 @@ private:
     std::string m_selectedFile;
     
     bool        m_unsavedChanges;
+    
+    xy::TextureResource m_textures;
 };

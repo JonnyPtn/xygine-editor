@@ -27,16 +27,15 @@
 
 const sf::Vector2f PreviewSize(400,400);
 
-SpriteAsset::SpriteAsset(const std::string& path, xy::Scene& previewScene) :
+SpriteAsset::SpriteAsset(const std::string& path, xy::Scene& previewScene, xy::TextureResource& textures) :
 Asset(),
-m_assetPath(path),
-m_previewScene(previewScene)
+m_assetPath(path)
 {
     // Because xy::Spritesheet automatically prepends the bundle path, we need to go relative to that
     auto resPath = xy::FileSystem::getResourcePath();
     resPath = resPath.substr(0,resPath.find_last_of("/"));
     auto relPath = xy::FileSystem::getRelativePath(path,resPath);
-    m_sheet.loadFromFile(relPath, m_textures);
+    m_sheet.loadFromFile(relPath, textures);
     
     // Because the texture resource will also try to load from our resource path, we need to manually
     // load the texture using the correct path
@@ -45,10 +44,10 @@ m_previewScene(previewScene)
     getcwd(buf.data(), bufSize);
     auto texPath = std::string(buf.data()) + "/" + m_sheet.getTexturePath();
     texPath = xy::FileSystem::getRelativePath(texPath, resPath);
-    m_textures.get(texPath);
+    m_texture = &(textures.get(texPath)); // danger?
     
     // Our entity for the preview
-    m_previewSprite = m_previewScene.createEntity();
+    m_previewSprite = previewScene.createEntity();
     m_previewSprite.addComponent<xy::Sprite>();
     m_previewSprite.addComponent<xy::Transform>();
     m_previewSprite.addComponent<xy::Drawable>();
@@ -65,11 +64,6 @@ void SpriteAsset::drawProperties()
     resPath = resPath.substr(0,resPath.find_last_of("/"));
     
     // Texture preview, along with texture rect indicator
-    std::array<char,bufSize> buf = {{0}};
-    getcwd(buf.data(), bufSize);
-    auto texPath = std::string(buf.data()) + "/" + m_sheet.getTexturePath();
-    texPath = xy::FileSystem::getRelativePath(texPath, resPath);
-    auto& tex = m_textures.get(texPath);
     sf::IntRect texRect = sf::IntRect(m_previewSprite.getComponent<xy::Sprite>().getTextureRect());
     
     // Separate dock window for the texture
@@ -78,7 +72,7 @@ void SpriteAsset::drawProperties()
         ImGui::InputText("Texture", texturePath.data(), bufSize);
        // ImGui::BeginChild("Texture Preview",{200,200}, ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::DrawRect(sf::FloatRect(texRect), sf::Color::Red);
-        ImGui::Image(tex);
+        ImGui::Image(*m_texture);
         //ImGui::EndChild();
     }
     ImGui::EndDock();
@@ -95,15 +89,9 @@ void SpriteAsset::drawProperties()
                 if (sprSelected)
                 {
                     m_selectedSpriteName = spr.first;
-                    m_previewScene.destroyEntity(m_previewSprite);
-                    m_previewScene.createEntity();
-                    m_previewSprite = m_previewScene.createEntity();
-                    m_previewSprite.addComponent(spr.second);
-                    m_previewSprite.getComponent<xy::Sprite>().setTexture(tex);
-                    m_previewSprite.getComponent<xy::Sprite>().setTextureRect(spr.second.getTextureRect());
-                    m_previewSprite.addComponent<xy::Transform>();
-                    m_previewSprite.addComponent<xy::Drawable>();
-                    m_previewSprite.addComponent<xy::SpriteAnimation>();
+                    m_previewSprite.getComponent<xy::Sprite>() = spr.second;
+                    m_previewSprite.getComponent<xy::Sprite>().setTexture(*m_texture);
+                   // m_previewSprite.getComponent<xy::Sprite>().setTextureRect(spr.second.getTextureRect());
                 }
             }
             ImGui::EndCombo();
@@ -152,20 +140,6 @@ void SpriteAsset::drawProperties()
                 }
             }
         }
-    }
-    ImGui::EndDock();
-}
-
-void SpriteAsset::drawPreview()
-{
-    // draw the preview scene
-    m_previewBuffer.clear();
-    m_previewBuffer.draw(m_previewScene);
-    m_previewBuffer.display();
-    
-    if (ImGui::BeginDock("Preview scene"))
-    {
-        ImGui::Image(m_previewBuffer);
     }
     ImGui::EndDock();
 }
