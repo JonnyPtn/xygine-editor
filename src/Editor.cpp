@@ -73,6 +73,13 @@ Editor::Editor()
     
     getRenderWindow()->setVerticalSyncEnabled(false);
     getRenderWindow()->setFramerateLimit(60);
+    
+    // Load the style
+    xy::Nim::Style style;
+    if (style.loadFromFile(xy::FileSystem::getConfigDirectory(getApplicationName()) + "style.cfg"))
+    {
+        xy::Nim::setStyle(style);
+    }
 }
 
 //private
@@ -156,22 +163,20 @@ void Editor::draw()
         }
         
         // View menu
-        static bool showStyleEditor = false;
+        static bool styleEditorShowing = false;
         if (ImGui::BeginMenu("View"))
         {
             if (ImGui::BeginMenu("Windows"))
             {
-                ImGui::MenuItem("Editor Style", nullptr, &showStyleEditor);
+                ImGui::MenuItem("Editor Style", nullptr, &styleEditorShowing);
                 ImGui::EndMenu();
             }
             ImGui::EndMenu();
         }
         
-        if (showStyleEditor)
+        if (styleEditorShowing)
         {
-            ImGui::Begin("Editor Style", &showStyleEditor);
-            ImGui::ShowStyleEditor();
-            ImGui::End();
+            showStyleEditor();
         }
         
         // Show fps in menu bar
@@ -201,4 +206,25 @@ void Editor::registerStates()
     m_stateStack.registerState<NewState>(States::NEW);
     m_stateStack.registerState<OpenState>(States::OPEN);
     m_stateStack.registerState<ProjectEditState>(States::PROJECT_EDIT);
+}
+
+void Editor::showStyleEditor()
+{
+    xy::Nim::begin("Style Editor");
+    
+    // You could cache the style to improve performance if needed
+    auto style = xy::Nim::getStyle();
+    
+    xy::Nim::slider("Alpha", style.Alpha, 0.f, 1.f);
+    xy::Nim::checkbox("Antialiased fill", &style.AntiAliasedFill);
+    xy::Nim::checkbox("Antialiased lines", &style.AntiAliasedLines);
+    xy::Nim::slider("Window rounding", style.WindowRounding, 0.f, 100.f);
+    
+    xy::Nim::setStyle(style);
+    
+    if (xy::Nim::button("Save"))
+    {
+        style.saveToFile(xy::FileSystem::getConfigDirectory(getApplicationName()) + "style.cfg");
+    }
+    xy::Nim::end();
 }

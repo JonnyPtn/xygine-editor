@@ -62,6 +62,9 @@ private:
     
     xy::ConfigFile m_editorConfig;
     std::string m_editorConfigPath;
+    
+    // Show the style editor for imgui
+    void showStyleEditor();
 };
 
 

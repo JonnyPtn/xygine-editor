@@ -104,6 +104,7 @@ void SpriteAsset::drawProperties()
         {
             m_sheet.setSprite("New Sprite", xy::Sprite());
         }
+    
         
         // Rename sprite
         ImGui::SameLine();
